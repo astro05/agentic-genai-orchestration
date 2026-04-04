@@ -28,7 +28,11 @@ var openAIOptions = new OpenAIClientOptions()
 };
 
 // Run the OpenAI client sample. This will execute a few different code samples demonstrating how to use the client.
-OpenAIClientType.UsingOpenAiChat(credential, model, openAIOptions).Wait();
+//OpenAIClientType.UsingOpenAiChat(credential, model, openAIOptions).Wait();
+
+// Run the OpenAI function calling sample. This will execute a few different code samples demonstrating how to use the function calling feature of the client.
+OpenAIClientType.UsingOpenAiFunctionCall(credential, model, openAIOptions).Wait();
+
 
 // Run the OpenAI chat ChatClient sample. This will execute a few different code samples demonstrating how to use the client.
 //TextGeneration.OpenAiChatChatClient.UsingOpenAiChat(credential, model, openAIOptions).Wait();

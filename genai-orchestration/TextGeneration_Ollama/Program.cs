@@ -10,7 +10,7 @@ IChatClient client =
 #region  Run a basic code sample
 
 string prompt = "What is the capital of France?";
-Console.WriteLine($"user >>> {prompt}");
+Console.WriteLine($"user >>> {prompt}"); 
 
 ChatResponse response = await client.GetResponseAsync(prompt);
 
