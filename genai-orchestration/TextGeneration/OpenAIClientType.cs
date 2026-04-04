@@ -8,7 +8,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using TextGeneration.Models;
 
-namespace TextGeneration
+namespace TextGeneration_GitHub
 {
     public static class OpenAIClientType
     {

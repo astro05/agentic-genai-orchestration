@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Text.Json.Serialization;
 
-namespace TextGeneration_GitHub.Models
+namespace TextGeneration_Ollama.Models
 {
     public class JobDetails
     {

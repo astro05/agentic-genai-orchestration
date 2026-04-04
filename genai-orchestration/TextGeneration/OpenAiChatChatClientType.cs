@@ -6,9 +6,9 @@ using System.Collections.Generic;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using TextGeneration.Models;
+using TextGeneration_GitHub.Models;
 
-namespace TextGeneration
+namespace TextGeneration_GitHub
 {
     public static class OpenAiChatChatClientType
     {
