@@ -8,7 +8,8 @@ using OpenAI;
 using System.ClientModel;
 using TextGeneration_GitHub;
 
-
+var token = "GITHUB_TOKEN_openai_gpt_4o_mini";
+var model = "openai/gpt-4o-mini";
 var endpoint = "https://models.github.ai/inference";
 
 ////Using .ENV file to load environment variables
@@ -17,9 +18,9 @@ var endpoint = "https://models.github.ai/inference";
 
 // get credentials from user secrets
 IConfigurationRoot config = new ConfigurationBuilder().AddUserSecrets<Program>().Build();
-ApiKeyCredential credential = new ApiKeyCredential(config["GITHUB_TOKEN_openai_gpt_4o_mini"] ?? throw new InvalidOperationException("Missing configuration: GITHUB_TOKEN_openai_gpt_4o_mini."));
+ApiKeyCredential credential = new ApiKeyCredential(config[token] ?? throw new InvalidOperationException($"Missing configuration: {token}"));
 
-var model = "openai/gpt-4o-mini";
+
 
 var openAIOptions = new OpenAIClientOptions()
 {
