@@ -17,6 +17,7 @@
     <PackageReference Include="Microsoft.Extensions.VectorData.Abstractions" Version="10.1.0" />
     <PackageReference Include="Microsoft.SemanticKernel.Connectors.InMemory" Version="1.74.0-preview" />
     <PackageReference Include="System.Numerics.Tensors" Version="10.0.5" />
+	<PackageReference Include="OllamaSharp" Version="5.3.6" />
   </ItemGroup>
 
 

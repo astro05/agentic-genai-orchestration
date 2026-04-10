@@ -3,9 +3,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.SemanticKernel.Connectors.InMemory;
 using OpenAI;
 using System.ClientModel;
-using VectorSearch;
+using VectorSearch.Models;
 
-namespace VectorSearch.Models;
+namespace VectorSearch;
 
 public static class VectorSearch_GitHub
 {
@@ -44,9 +44,9 @@ public static class VectorSearch_GitHub
 
         Console.WriteLine("=== Restaurant Search Examples ===\n");
 
-        Console.WriteLine("Query 1: 'I want a casual place for dinner with my family'");
-        Console.WriteLine("Query 2: 'Looking for a romantic spot for date night'");
-        Console.WriteLine("Query 3: 'I want budget-friendly lunch options'");
+        //Console.WriteLine("Query 1: 'I want a casual place for dinner with my family'");
+        //Console.WriteLine("Query 2: 'Looking for a romantic spot for date night'");
+        //Console.WriteLine("Query 3: 'I want budget-friendly lunch options'");
         Console.WriteLine("Query 4: 'Where can I get authentic Italian pasta?'\n");
 
         // Uncomment the query you want to test
