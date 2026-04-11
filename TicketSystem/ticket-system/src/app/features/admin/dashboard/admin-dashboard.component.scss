@@ -102,9 +102,9 @@
   border-radius: 20px;
   padding: 3px 10px;
 
-  &.role-admin    { background: rgba(248,81,73,0.15);  color: var(--danger);  }
-  &.role-agent    { background: rgba(210,153,34,0.15); color: var(--warning); }
-  &.role-customer { background: rgba(47,129,247,0.15); color: var(--accent);  }
+  &.role-admin    { background: rgba(217,48,37,0.10);  color: #b02018;  }
+  &.role-agent    { background: rgba(179,107,0,0.10);  color: #8a5200;  }
+  &.role-customer { background: rgba(26,110,245,0.10); color: #1253b8;  }
 }
 
 .role-select {

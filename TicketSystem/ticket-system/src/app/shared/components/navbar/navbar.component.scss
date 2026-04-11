@@ -5,7 +5,7 @@
   position: sticky;
   top: 0;
   z-index: 100;
-  backdrop-filter: blur(12px);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 
 .nav-inner {
@@ -128,9 +128,9 @@
   display: inline-block;
   line-height: 1.6;
 
-  &.role-admin    { background: rgba(248,81,73,0.15);  color: var(--danger);  }
-  &.role-agent    { background: rgba(210,153,34,0.15); color: var(--warning); }
-  &.role-customer { background: rgba(47,129,247,0.15); color: var(--accent);  }
+  &.role-admin    { background: rgba(217,48,37,0.10);  color: #b02018;  }
+  &.role-agent    { background: rgba(179,107,0,0.10);  color: #8a5200;  }
+  &.role-customer { background: rgba(26,110,245,0.10); color: #1253b8;  }
 }
 
 .logout-btn {

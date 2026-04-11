@@ -1,49 +1,48 @@
-/* You can add global styles to this file, and also import other style files */
 /* ── Google Fonts ──────────────────────────────────────────── */
 @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap');
 @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css');
 
 /* ── Design Tokens ─────────────────────────────────────────── */
 :root {
-  --bg-base:        #0d1117;
-  --bg-surface:     #161b22;
-  --bg-elevated:    #1c2333;
-  --bg-hover:       #21283a;
+  --bg-base:        #f5f7fa;
+  --bg-surface:     #ffffff;
+  --bg-elevated:    #f0f2f5;
+  --bg-hover:       #e8edf3;
 
-  --border:         #30363d;
-  --border-accent:  #2f81f7;
+  --border:         #dde1e9;
+  --border-accent:  #1a6ef5;
 
-  --text-primary:   #e6edf3;
-  --text-secondary: #8b949e;
-  --text-muted:     #484f58;
+  --text-primary:   #0f1724;
+  --text-secondary: #536075;
+  --text-muted:     #9aa5b4;
 
-  --accent:         #2f81f7;
-  --accent-hover:   #388bfd;
-  --accent-dim:     rgba(47, 129, 247, 0.12);
+  --accent:         #1a6ef5;
+  --accent-hover:   #1560e0;
+  --accent-dim:     rgba(26, 110, 245, 0.09);
 
-  --success:        #3fb950;
-  --success-dim:    rgba(63, 185, 80, 0.12);
-  --warning:        #d29922;
-  --warning-dim:    rgba(210, 153, 34, 0.12);
-  --danger:         #f85149;
-  --danger-dim:     rgba(248, 81, 73, 0.12);
+  --success:        #1a9645;
+  --success-dim:    rgba(26, 150, 69, 0.09);
+  --warning:        #b36b00;
+  --warning-dim:    rgba(179, 107, 0, 0.09);
+  --danger:         #d93025;
+  --danger-dim:     rgba(217, 48, 37, 0.09);
 
-  --priority-low:    #3fb950;
-  --priority-medium: #d29922;
-  --priority-high:   #f85149;
+  --priority-low:    #1a9645;
+  --priority-medium: #b36b00;
+  --priority-high:   #d93025;
 
-  --status-open:       #2f81f7;
-  --status-inprogress: #d29922;
-  --status-resolved:   #3fb950;
+  --status-open:       #1a6ef5;
+  --status-inprogress: #b36b00;
+  --status-resolved:   #1a9645;
 
   --radius-sm:   6px;
   --radius-md:   10px;
   --radius-lg:   14px;
   --radius-xl:   20px;
 
-  --shadow-sm:   0 1px 3px rgba(0,0,0,0.4);
-  --shadow-md:   0 4px 16px rgba(0,0,0,0.5);
-  --shadow-lg:   0 8px 32px rgba(0,0,0,0.6);
+  --shadow-sm:   0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md:   0 4px 16px rgba(0,0,0,0.10);
+  --shadow-lg:   0 8px 32px rgba(0,0,0,0.14);
 
   --font-display: 'Sora', sans-serif;
   --font-body:    'DM Sans', sans-serif;
@@ -78,9 +77,9 @@ a:hover { color: var(--accent-hover); }
 
 /* ── Scrollbar ─────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: var(--bg-surface); }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+::-webkit-scrollbar-track { background: var(--bg-elevated); }
+::-webkit-scrollbar-thumb { background: #c8cdd6; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #9aa5b4; }
 
 /* ── Layout Shell ──────────────────────────────────────────── */
 .app-shell {
@@ -238,13 +237,13 @@ textarea { resize: vertical; min-height: 100px; }
   letter-spacing: 0.01em;
 }
 
-.badge-open       { background: rgba(47,129,247,0.15);  color: var(--status-open);       }
-.badge-inprogress { background: rgba(210,153,34,0.15);  color: var(--status-inprogress); }
-.badge-resolved   { background: rgba(63,185,80,0.15);   color: var(--status-resolved);   }
+.badge-open       { background: rgba(26,110,245,0.10);  color: var(--status-open);       }
+.badge-inprogress { background: rgba(179,107,0,0.10);  color: var(--status-inprogress); }
+.badge-resolved   { background: rgba(26,150,69,0.10);  color: var(--status-resolved);   }
 
-.badge-low    { background: rgba(63,185,80,0.15);  color: var(--priority-low);    }
-.badge-medium { background: rgba(210,153,34,0.15); color: var(--priority-medium); }
-.badge-high   { background: rgba(248,81,73,0.15);  color: var(--priority-high);   }
+.badge-low    { background: rgba(26,150,69,0.10);  color: var(--priority-low);    }
+.badge-medium { background: rgba(179,107,0,0.10);  color: var(--priority-medium); }
+.badge-high   { background: rgba(217,48,37,0.10);  color: var(--priority-high);   }
 
 /* ── Tables ────────────────────────────────────────────────── */
 .table-wrap {
@@ -326,9 +325,9 @@ tbody td {
   margin-bottom: 16px;
   border: 1px solid transparent;
 }
-.alert-error   { background: var(--danger-dim);  color: var(--danger);  border-color: rgba(248,81,73,0.3); }
-.alert-success { background: var(--success-dim); color: var(--success); border-color: rgba(63,185,80,0.3); }
-.alert-info    { background: var(--accent-dim);  color: var(--accent);  border-color: rgba(47,129,247,0.3); }
+.alert-error   { background: rgba(217,48,37,0.07);  color: #b02018;  border-color: rgba(217,48,37,0.25); }
+.alert-success { background: rgba(26,150,69,0.07); color: #136134;  border-color: rgba(26,150,69,0.25); }
+.alert-info    { background: rgba(26,110,245,0.07); color: #1253b8; border-color: rgba(26,110,245,0.25); }
 
 /* ── Empty State ───────────────────────────────────────────── */
 .empty-state {

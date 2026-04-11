@@ -7,7 +7,7 @@
 
 .auth-left {
   flex: 1;
-  background: var(--bg-surface);
+  background: linear-gradient(145deg, #0f4d2e 0%, #166534 55%, #1a9645 100%);
   border-right: 1px solid var(--border);
   padding: 60px 56px;
   display: flex;
@@ -21,7 +21,7 @@
     position: absolute;
     bottom: -100px; left: -100px;
     width: 350px; height: 350px;
-    background: radial-gradient(circle, rgba(63,185,80,0.07) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(255,255,255,0.07) 0%, transparent 70%);
     pointer-events: none;
   }
 
@@ -35,13 +35,13 @@
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 1.1rem;
-  color: var(--text-primary);
+  color: rgba(255,255,255,0.95);
   margin-bottom: 48px;
 }
 
 .brand-icon {
   width: 36px; height: 36px;
-  background: var(--accent);
+  background: rgba(255,255,255,0.2);
   border-radius: var(--radius-sm);
   display: flex; align-items: center; justify-content: center;
   color: #fff; font-size: 16px;
@@ -51,14 +51,13 @@
   font-size: 2.4rem;
   line-height: 1.2;
   margin-bottom: 16px;
-  background: linear-gradient(135deg, var(--text-primary) 40%, var(--success));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #ffffff;
+  -webkit-text-fill-color: unset;
+  background: none;
 }
 
 .auth-left p {
-  color: var(--text-secondary);
+  color: rgba(255,255,255,0.75);
   font-size: 15px;
   line-height: 1.7;
   max-width: 360px;
@@ -72,14 +71,14 @@
   align-items: center;
   gap: 12px;
   font-size: 14px;
-  color: var(--text-secondary);
+  color: rgba(255,255,255,0.8);
 
   i {
     width: 30px; height: 30px;
-    background: var(--success-dim);
+    background: rgba(255,255,255,0.15);
     border-radius: var(--radius-sm);
     display: flex; align-items: center; justify-content: center;
-    color: var(--success);
+    color: rgba(255,255,255,0.95);
     font-size: 13px;
     flex-shrink: 0;
   }
