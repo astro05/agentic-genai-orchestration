@@ -416,3 +416,8 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+*.user
+*.secrets.json
+appsettings.Development.json
+appsettings.Production.json

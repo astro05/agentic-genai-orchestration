@@ -1,45 +1,89 @@
-﻿using MongoDB.Driver;
+﻿using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using Microsoft.IdentityModel.Tokens;
+using MongoDB.Driver;
 using TicketSystem.API.DTOs;
-using TicketSystem.API.Helpers;
 using TicketSystem.API.Models;
+using TicketSystem.API.Settings;
 
-namespace TicketSystem.API.Services;
-
-public class AuthService
+namespace TicketSystem.API.Services
 {
-    private readonly IMongoCollection<User> _users;
-    private readonly JwtHelper _jwtHelper;
-
-    public AuthService(IConfiguration config, JwtHelper jwtHelper)
+    public class AuthService
     {
-        var client = new MongoClient(config["MongoDB:ConnectionString"]);
-        var db = client.GetDatabase(config["MongoDB:DatabaseName"]);
-        _users = db.GetCollection<User>("users");
-        _jwtHelper = jwtHelper;
-    }
+        private readonly IMongoCollection<User> _users;
+        private readonly IConfiguration _config;
 
-    public async Task<string?> RegisterAsync(RegisterDto dto)
-    {
-        var exists = await _users.Find(u => u.Email == dto.Email).FirstOrDefaultAsync();
-        if (exists != null) return null;
-
-        var user = new User
+        public AuthService(MongoDbSettings settings, IConfiguration config)
         {
-            FullName = dto.FullName,
-            Email = dto.Email,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-            Role = dto.Role
-        };
+            var client = new MongoClient(settings.ConnectionString);
+            var database = client.GetDatabase(settings.DatabaseName);
+            _users = database.GetCollection<User>(settings.UsersCollection);
+            _config = config;
+        }
 
-        await _users.InsertOneAsync(user);
-        return _jwtHelper.GenerateToken(user);
-    }
+        public async Task<AuthResponse?> RegisterAsync(RegisterRequest req)
+        {
+            var existing = await _users.Find(u => u.Email == req.Email).FirstOrDefaultAsync();
+            if (existing != null) return null;
 
-    public async Task<string?> LoginAsync(LoginDto dto)
-    {
-        var user = await _users.Find(u => u.Email == dto.Email).FirstOrDefaultAsync();
-        if (user == null) return null;
-        if (!BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash)) return null;
-        return _jwtHelper.GenerateToken(user);
+            var user = new User
+            {
+                FullName = req.FullName,
+                Email = req.Email,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.Password),
+                Role = req.Role == UserRole.Admin ? UserRole.Customer : req.Role  // public cannot register as admin
+            };
+
+            await _users.InsertOneAsync(user);
+            return BuildAuthResponse(user);
+        }
+
+        public async Task<AuthResponse?> LoginAsync(LoginRequest req)
+        {
+            var user = await _users.Find(u => u.Email == req.Email && u.IsActive).FirstOrDefaultAsync();
+            if (user == null || !BCrypt.Net.BCrypt.Verify(req.Password, user.PasswordHash))
+                return null;
+
+            return BuildAuthResponse(user);
+        }
+
+        private AuthResponse BuildAuthResponse(User user)
+        {
+            var token = GenerateJwt(user);
+            return new AuthResponse
+            {
+                Token = token,
+                UserId = user.Id!,
+                FullName = user.FullName,
+                Email = user.Email,
+                Role = user.Role.ToString()
+            };
+        }
+
+        private string GenerateJwt(User user)
+        {
+            var jwtKey = _config["JwtSettings:Secret"] ?? throw new Exception("JWT secret not configured");
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var claims = new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.Id!),
+                new Claim(ClaimTypes.Email, user.Email),
+                new Claim(ClaimTypes.Name, user.FullName),
+                new Claim(ClaimTypes.Role, user.Role.ToString())
+            };
+
+            var token = new JwtSecurityToken(
+                issuer: _config["JwtSettings:Issuer"],
+                audience: _config["JwtSettings:Audience"],
+                claims: claims,
+                expires: DateTime.UtcNow.AddDays(7),
+                signingCredentials: creds
+            );
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
+        }
     }
 }

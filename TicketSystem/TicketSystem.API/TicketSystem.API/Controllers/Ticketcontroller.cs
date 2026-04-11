@@ -1,0 +1,83 @@
+﻿using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using TicketSystem.API.DTOs;
+using TicketSystem.API.Models;
+using TicketSystem.API.Services;
+
+namespace TicketSystem.API.Controllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    [Authorize]
+    public class TicketController : ControllerBase
+    {
+        private readonly TicketService _ticketService;
+        private readonly AIService _aiService;
+
+        public TicketController(TicketService ticketService, AIService aiService)
+        {
+            _ticketService = ticketService;
+            _aiService = aiService;
+        }
+
+        // ── Customer: Create ticket (AI classifies automatically) ──
+        [HttpPost]
+        [Authorize(Roles = "Customer")]
+        public async Task<IActionResult> CreateTicket([FromBody] CreateTicketRequest req)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
+            var userName = User.FindFirst(ClaimTypes.Name)?.Value!;
+
+            var ticket = await _ticketService.CreateAsync(req, userId, userName);
+
+            // AI Classification in background
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    var classification = await _aiService.ClassifyTicketAsync(req.Description);
+                    if (Enum.TryParse<TicketCategory>(classification.Category, out var cat) &&
+                        Enum.TryParse<TicketPriority>(classification.Priority, out var pri))
+                    {
+                        await _ticketService.UpdateAIClassification(ticket.Id, cat, pri);
+                    }
+                }
+                catch { /* AI failure is non-critical */ }
+            });
+
+            return Ok(ticket);
+        }
+
+        // ── Customer: Get own tickets ────────────────────────────
+        [HttpGet("my")]
+        [Authorize(Roles = "Customer")]
+        public async Task<IActionResult> GetMyTickets()
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
+            var tickets = await _ticketService.GetByCustomerAsync(userId);
+            return Ok(tickets);
+        }
+
+        // ── Agent: Get assigned tickets ──────────────────────────
+        [HttpGet("assigned")]
+        [Authorize(Roles = "Agent")]
+        public async Task<IActionResult> GetAssignedTickets()
+        {
+            var agentId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
+            var tickets = await _ticketService.GetByAgentAsync(agentId);
+            return Ok(tickets);
+        }
+
+        // ── Agent: Update ticket status ──────────────────────────
+        [HttpPut("{id}/status")]
+        [Authorize(Roles = "Agent")]
+        public async Task<IActionResult> UpdateStatus(string id, [FromBody] UpdateTicketStatusRequest req)
+        {
+            var agentId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
+            var success = await _ticketService.UpdateStatusAsync(id, agentId, req.Status);
+            if (!success) return NotFound(new { message = "Ticket not found or not assigned to you." });
+            return Ok(new { message = "Status updated." });
+        }
+    }
+}
