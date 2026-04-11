@@ -1,6 +1,5 @@
 import { Component, DestroyRef, inject, OnInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { finalize } from 'rxjs/operators';
 import { TicketService } from '../../../core/services/ticket.service';
 import { AuthService }   from '../../../core/services/auth.service';
 import { LiveRefreshService } from '../../../core/services/live-refresh.service';
@@ -38,11 +37,9 @@ export class CustomerDashboardComponent implements OnInit {
 
   load(silent = false): void {
     if (!silent) this.loading = true;
-    this.ticketService.getMyTickets().pipe(
-      finalize(() => { this.loading = false; })
-    ).subscribe({
-      next: t => { this.tickets = t; this.applyFilter(); },
-      error: () => { this.error = 'Failed to load tickets.'; }
+    this.ticketService.getMyTickets().subscribe({
+      next:  t  => { this.tickets = t; this.applyFilter(); this.loading = false; },
+      error: () => { this.error = 'Failed to load tickets.'; this.loading = false; }
     });
   }
 

@@ -1,6 +1,7 @@
 import { Component, DestroyRef, inject, OnInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { finalize } from 'rxjs/operators';
+import { forkJoin, of } from 'rxjs';
+import { catchError, finalize } from 'rxjs/operators';
 import { AdminService }  from '../../../core/services/admin.service';
 import { AuthService }   from '../../../core/services/auth.service';
 import { LiveRefreshService } from '../../../core/services/live-refresh.service';
@@ -23,7 +24,7 @@ export class AdminDashboardComponent implements OnInit {
   agents:         UserDto[]   = [];
   ticketSearch   = '';
   ticketFilter   = 'All';
-  loadingTickets = true;
+  loadingTickets = false;
   assigningId    = '';
   selectedAgent: Record<string, string> = {};
   ticketMsg = '';
@@ -33,7 +34,7 @@ export class AdminDashboardComponent implements OnInit {
   users:         UserDto[] = [];
   filteredUsers: UserDto[] = [];
   userSearch    = '';
-  loadingUsers  = true;
+  loadingUsers  = false;
   userActionBusyId = '';
   userMsg       = '';
   // tracks the pending dropdown selection per user (separate from committed role)
@@ -44,6 +45,10 @@ export class AdminDashboardComponent implements OnInit {
   newUser      = { fullName: '', email: '', password: '', role: 1 };
   creatingUser = false;
   modalError   = '';
+
+  /** In-app confirm dialogs (Deactivate / permanent delete) */
+  confirmDeactivateUserId: string | null = null;
+  confirmDeleteUserId: string | null = null;
 
   readonly STATUS_LABELS   = STATUS_LABELS;
   readonly CATEGORY_LABELS = CATEGORY_LABELS;
@@ -61,33 +66,66 @@ export class AdminDashboardComponent implements OnInit {
   private readonly destroyRef   = inject(DestroyRef);
 
   ngOnInit(): void {
-    this.loadTickets(false);
-    this.loadUsers(false);
-    this.loadAgents();
+    this.loadInitialDashboard();
     this.liveRefresh.ticketRefresh$
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
         this.loadTickets(true);
         this.loadUsers(true);
         this.loadAgents();
+        
       });
+
+  }
+
+  /** Single initial fetch so loading flags always clear together after tickets, users, and agents are ready. */
+  private loadInitialDashboard(): void {
+    this.loadingTickets = true;
+    this.loadingUsers = true;
+    forkJoin({
+      tickets: this.adminService.getAllTickets().pipe(catchError(() => of([] as TicketDto[]))),
+      users: this.adminService.getAllUsers().pipe(catchError(() => of([] as UserDto[]))),
+      agents: this.adminService.getAgents().pipe(catchError(() => of([] as UserDto[])))
+    }).pipe(
+      takeUntilDestroyed(this.destroyRef),
+      finalize(() => {
+        this.loadingTickets = false;
+        this.loadingUsers = false;
+      })
+    ).subscribe(({ tickets, users, agents }) => {
+      this.tickets = tickets ?? [];
+      this.applyTicketFilter();
+      this.users = users ?? [];
+      this.users.forEach(user => {
+        if (!(user.id in this.pendingRole)) {
+          this.pendingRole[user.id] = '';
+        }
+      });
+      this.applyUserFilter();
+      this.agents = agents ?? [];
+      if (this.selectedTicket) {
+        const cur = this.tickets.find(x => x.id === this.selectedTicket!.id);
+        if (cur) this.selectedTicket = { ...cur };
+      }
+      this.loadingTickets = false;
+      this.loadingUsers = false;
+    });
   }
 
   // ── Tickets ──────────────────────────────────────────────────
   loadTickets(silent = false): void {
-    if (!silent) this.loadingTickets = true;
+    if (!silent) this.loadingTickets = false;
     this.adminService.getAllTickets().pipe(
+      catchError(() => of([] as TicketDto[])),
       finalize(() => { this.loadingTickets = false; })
-    ).subscribe({
-      next: t => {
-        this.tickets = t;
-        this.applyTicketFilter();
-        if (this.selectedTicket) {
-          const cur = t.find(x => x.id === this.selectedTicket!.id);
-          if (cur) this.selectedTicket = { ...cur };
-        }
-      },
-      error: () => { /* spinner cleared in finalize */ }
+    ).subscribe(t => {
+      this.tickets = t ?? [];
+      this.applyTicketFilter();
+      if (this.selectedTicket) {
+        const cur = this.tickets.find(x => x.id === this.selectedTicket!.id);
+        if (cur) this.selectedTicket = { ...cur };
+      }
+      this.loadingTickets = false;
     });
   }
 
@@ -124,29 +162,37 @@ export class AdminDashboardComponent implements OnInit {
     this.selectedTicket = null;
   }
 
-  assignTicket(ticketId: string): void {
-    const agentId = this.selectedAgent[ticketId];
+  assignTicket(ticketId: string, agentId: string): void {
     if (!agentId) return;
     const agent = this.agents.find(a => a.id === agentId);
     const agentName = agent?.fullName ?? 'agent';
+
+    // ── Optimistic update: reflect assignment immediately ──
+    this.selectedAgent[ticketId] = agentId;
+    const updateInList = (list: TicketDto[]) => {
+      const idx = list.findIndex(t => t.id === ticketId);
+      if (idx !== -1) list[idx] = { ...list[idx], assignedToName: agentName,  status: 'InProgress' };
+    };
+    updateInList(this.tickets);
+    updateInList(this.filteredTickets);
+    if (this.selectedTicket?.id === ticketId) {
+      this.selectedTicket = { ...this.selectedTicket, assignedToName: agentName, status: 'InProgress' };
+    }
+
     this.assigningId = ticketId;
     this.adminService.assignTicket(ticketId, { agentId }).pipe(
       finalize(() => { this.assigningId = ''; })
     ).subscribe({
       next: () => {
         this.ticketMsg = `Ticket successfully assigned to ${agentName}.`;
+        // Silent refresh keeps UI in sync with server without toggling the main table spinner
         this.loadTickets(true);
         this.loadAgents();
-        if (this.selectedTicket?.id === ticketId) {
-          this.selectedTicket = {
-            ...this.selectedTicket,
-            assignedToName: agentName,
-            status: 'InProgress'
-          };
-        }
         setTimeout(() => this.ticketMsg = '', 5000);
       },
       error: () => {
+        this.loadTickets(true);
+        this.selectedAgent[ticketId] = '';
         this.ticketMsg = 'Assignment failed. Please try another agent or refresh the list.';
         setTimeout(() => this.ticketMsg = '', 5000);
       }
@@ -157,19 +203,16 @@ export class AdminDashboardComponent implements OnInit {
   loadUsers(silent = false): void {
     if (!silent) this.loadingUsers = true;
     this.adminService.getAllUsers().pipe(
-      finalize(() => { this.loadingUsers = false; })
-    ).subscribe({
-      next: u => {
-        this.users = u;
-        // seed pendingRole only for users not already tracked
-        u.forEach(user => {
-          if (!(user.id in this.pendingRole)) {
-            this.pendingRole[user.id] = '';
-          }
-        });
-        this.applyUserFilter();
-      },
-      error: () => { }
+      catchError(() => of([] as UserDto[])),
+      finalize(() => { this.loadingUsers = false;   this.userActionBusyId = ''; })
+    ).subscribe(u => {
+      this.users = u ?? [];
+      this.users.forEach(user => {
+        if (!(user.id in this.pendingRole)) {
+          this.pendingRole[user.id] = '';
+        }
+      });
+      this.applyUserFilter();
     });
   }
 
@@ -212,9 +255,27 @@ export class AdminDashboardComponent implements OnInit {
     });
   }
 
-  deactivateUser(id: string): void {
-    if (!confirm('Deactivate this user? They will not be able to sign in until reactivated.')) return;
-    this.userActionBusyId = id;
+  openDeactivateConfirm(id: string): void {
+    this.confirmDeactivateUserId = id;
+  }
+
+  cancelDeactivateConfirm(): void {
+    this.confirmDeactivateUserId = null;
+  }
+
+  confirmDeactivateUser(): void {
+    const id = this.confirmDeactivateUserId;
+    if (!id) return;
+    this.confirmDeactivateUserId = null;
+
+    const updateInactive = (list: UserDto[]) => {
+      const idx = list.findIndex(u => u.id === id);
+      if (idx !== -1) list[idx] = { ...list[idx], isActive: false };
+    };
+    updateInactive(this.users);
+    updateInactive(this.filteredUsers);
+
+    this.userActionBusyId = '';
     this.adminService.deleteUser(id).pipe(finalize(() => { this.userActionBusyId = ''; })).subscribe({
       next: () => {
         this.userMsg = 'User deactivated.';
@@ -222,12 +283,16 @@ export class AdminDashboardComponent implements OnInit {
         this.loadAgents();
         setTimeout(() => this.userMsg = '', 2500);
       },
-      error: () => { this.userMsg = 'Could not deactivate user.'; setTimeout(() => this.userMsg = '', 3000); }
+      error: () => {
+        this.userMsg = 'Could not deactivate user.';
+        this.loadUsers(true);
+        setTimeout(() => this.userMsg = '', 3000);
+      }
     });
   }
 
   activateUser(id: string): void {
-    this.userActionBusyId = id;
+    this.userActionBusyId = '';
     this.adminService.activateUser(id).pipe(finalize(() => { this.userActionBusyId = ''; })).subscribe({
       next: () => {
         this.userMsg = 'User activated.';
@@ -239,9 +304,28 @@ export class AdminDashboardComponent implements OnInit {
     });
   }
 
-  permanentlyDeleteUser(id: string): void {
-    if (!confirm('Permanently delete this user from the database? This cannot be undone.')) return;
-    this.userActionBusyId = id;
+  openDeleteConfirm(id: string): void {
+    this.confirmDeleteUserId = id;
+  }
+
+  cancelDeleteConfirm(): void {
+    this.confirmDeleteUserId = null;
+  }
+
+  confirmPermanentlyDeleteUser(): void {
+    const id = this.confirmDeleteUserId;
+    if (!id) return;
+    this.confirmDeleteUserId = null;
+
+    const removeFrom = (list: UserDto[]) => {
+      const idx = list.findIndex(u => u.id === id);
+      if (idx !== -1) list.splice(idx, 1);
+    };
+    removeFrom(this.users);
+    removeFrom(this.filteredUsers);
+    delete this.pendingRole[id];
+
+    this.userActionBusyId = '';
     this.adminService.permanentlyDeleteUser(id).pipe(finalize(() => { this.userActionBusyId = ''; })).subscribe({
       next: () => {
         this.userMsg = 'User permanently deleted.';
@@ -251,6 +335,7 @@ export class AdminDashboardComponent implements OnInit {
       },
       error: (err) => {
         this.userMsg = err.error?.message ?? 'Could not delete user.';
+        this.loadUsers(true);
         setTimeout(() => this.userMsg = '', 4000);
       }
     });
@@ -266,19 +351,27 @@ export class AdminDashboardComponent implements OnInit {
     if (!this.newUser.fullName || !this.newUser.email || !this.newUser.password) {
       this.modalError = 'All fields are required.'; return;
     }
-    this.creatingUser = true;
-    this.adminService.createUser(this.newUser as any).subscribe({
+    this.creatingUser = false;
+    const payload = {
+      fullName: this.newUser.fullName.trim(),
+      email: this.newUser.email.trim(),
+      password: this.newUser.password,
+      role: Number(this.newUser.role)
+    };
+    this.adminService.createUser(payload).pipe(
+      finalize(() => { this.creatingUser = false; })
+    ).subscribe({
       next: () => {
-        this.creatingUser = false;
-        this.showModal    = false;
-        this.userMsg      = 'User created successfully.';
+        this.showModal = false;
+        this.modalError = '';
+        this.userMsg = 'User created successfully.';
+        this.userSearch = '';
         this.loadUsers(true);
         this.loadAgents();
         setTimeout(() => this.userMsg = '', 3000);
       },
       error: (err) => {
-        this.creatingUser = false;
-        this.modalError   = err.error?.message ?? 'Failed to create user.';
+        this.modalError = err.error?.message ?? 'Failed to create user.';
       }
     });
   }

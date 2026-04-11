@@ -100,7 +100,7 @@ export class AgentDashboardComponent implements OnInit {
     if (!this.selectedTicket) return;
     const id = this.selectedTicket.id;
     const notes = this.noteDraft;
-    this.savingNotes = true;
+    this.savingNotes = false;
     this.ticketService.updateAgentNotes(id, { notes }).pipe(
       finalize(() => { this.savingNotes = false; })
     ).subscribe({
@@ -133,7 +133,7 @@ export class AgentDashboardComponent implements OnInit {
     );
     this.applyFilter();
 
-    this.updatingId = ticketId;
+    this.updatingId = '';
     this.updateMsg  = '';
     this.ticketService.updateStatus(ticketId, { status: statusValue }).subscribe({
       next: () => {

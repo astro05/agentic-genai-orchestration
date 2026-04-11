@@ -50,10 +50,10 @@
     </div>
   </div>
 
-  <!-- Success msg -->
+  <!-- Success msg
   <div class="alert alert-success" *ngIf="updateMsg">
     <i class="fas fa-check-circle"></i> {{ updateMsg }}
-  </div>
+  </div> -->
 
   <!-- Toolbar -->
   <div class="toolbar">
@@ -185,11 +185,18 @@
       <label><i class="fas fa-sticky-note"></i> Agent notes (saved to database)</label>
       <textarea class="notes-input" rows="5" [(ngModel)]="noteDraft"
         placeholder="Internal notes about this ticket…"></textarea>
-      <div class="notes-actions">
-        <button type="button" class="btn btn-primary" [disabled]="savingNotes" (click)="saveNotes()">
-          <span *ngIf="!savingNotes"><i class="fas fa-floppy-disk"></i> Save notes</span>
-          <span *ngIf="savingNotes"><span class="btn-spinner-sm"></span> Saving…</span>
-        </button>
+      <div class="notes-actions-container">
+        <div class="notes-actions" style="display: inline-block; margin-right: 16px;">
+          <button type="button" class="btn btn-primary" [disabled]="savingNotes" (click)="saveNotes()">
+            <span *ngIf="!savingNotes"><i class="fas fa-floppy-disk"></i> Save notes</span>
+            <span *ngIf="savingNotes"><span class="btn-spinner-sm"></span> Saving…</span>
+          </button>
+        </div>
+
+        <!-- Success msg -->
+        <div class="alert alert-success" *ngIf="updateMsg" style="display: inline-block; margin: 0;">
+          <i class="fas fa-check-circle"></i> {{ updateMsg }}
+        </div>
       </div>
     </div>
 

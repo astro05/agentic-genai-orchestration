@@ -79,9 +79,9 @@
   <!-- ═══════════════ TICKETS TAB ══════════════════════════ -->
   <div *ngIf="activeTab === 'tickets'">
 
-    <div class="alert alert-success" *ngIf="ticketMsg">
+    <!-- <div class="alert alert-success" *ngIf="ticketMsg">
       <i class="fas fa-check-circle"></i> {{ ticketMsg }}
-    </div>
+    </div> -->
 
     <div class="toolbar">
       <div class="tab-bar" style="margin-bottom:0">
@@ -97,7 +97,7 @@
       </div>
     </div>
 
-    <div class="spinner-wrap" *ngIf="loadingTickets"><div class="spinner"></div></div>
+    <!-- <div class="spinner-wrap" *ngIf="loadingTickets"><div class="spinner"></div></div> -->
 
     <div class="empty-state" *ngIf="!loadingTickets && filteredTickets.length===0">
       <i class="fas fa-inbox"></i>
@@ -143,18 +143,13 @@
               </span>
             </td>
             <td (click)="$event.stopPropagation()">
-              <div class="assign-row">
-                <select [(ngModel)]="selectedAgent[t.id]" class="agent-select">
-                  <option value="">Select agent…</option>
-                  <option *ngFor="let a of agents" [value]="a.id">{{ a.fullName }}</option>
-                </select>
-                <button type="button" class="btn btn-sm btn-primary"
-                  [disabled]="!selectedAgent[t.id] || assigningId === t.id"
-                  (click)="assignTicket(t.id)">
-                  <span *ngIf="assigningId !== t.id"><i class="fas fa-user-check"></i></span>
-                  <span *ngIf="assigningId === t.id"><span class="btn-spinner-sm"></span></span>
-                </button>
-              </div>
+              <select class="agent-select"
+                [ngModel]="selectedAgent[t.id]"
+                (ngModelChange)="assignTicket(t.id, $event)"
+                [disabled]="assigningId === t.id">
+                <option value="">Select agent…</option>
+                <option *ngFor="let a of agents" [value]="a.id">{{ a.fullName }}</option>
+              </select>
             </td>
             <td class="date-cell">{{ t.createdAt | date:'MMM d' }}</td>
           </tr>
@@ -181,7 +176,7 @@
       </button>
     </div>
 
-    <div class="spinner-wrap" *ngIf="loadingUsers"><div class="spinner"></div></div>
+    <!-- <div class="spinner-wrap" *ngIf="loadingUsers"><div class="spinner"></div></div> -->
 
     <div class="table-wrap" *ngIf="!loadingUsers && filteredUsers.length > 0">
       <table>
@@ -230,7 +225,7 @@
                 <button type="button" class="btn btn-sm btn-secondary"
                   *ngIf="u.isActive"
                   [disabled]="userActionBusyId === u.id"
-                  (click)="deactivateUser(u.id)">
+                  (click)="openDeactivateConfirm(u.id)">
                   <span *ngIf="userActionBusyId !== u.id"><i class="fas fa-user-slash"></i> Deactivate</span>
                   <span *ngIf="userActionBusyId === u.id"><span class="btn-spinner-sm-dark"></span></span>
                 </button>
@@ -243,7 +238,7 @@
                 </button>
                 <button type="button" class="btn btn-sm btn-danger"
                   [disabled]="userActionBusyId === u.id || u.id === authService.currentUser?.userId"
-                  (click)="permanentlyDeleteUser(u.id)"
+                  (click)="openDeleteConfirm(u.id)"
                   [title]="u.id === authService.currentUser?.userId ? 'Cannot delete your own account' : ''">
                   <span *ngIf="userActionBusyId !== u.id"><i class="fas fa-trash"></i> Delete</span>
                   <span *ngIf="userActionBusyId === u.id"><span class="btn-spinner-sm"></span></span>
@@ -311,21 +306,43 @@
     <div class="detail-block assign-block">
       <label>Assign to agent</label>
       <div class="assign-row">
-        <select [(ngModel)]="selectedAgent[selectedTicket.id]" class="agent-select wide">
+        <select class="agent-select wide"
+          [ngModel]="selectedAgent[selectedTicket.id]"
+          (ngModelChange)="assignTicket(selectedTicket.id, $event)"
+          [disabled]="assigningId === selectedTicket.id">
           <option value="">Select agent…</option>
           <option *ngFor="let a of agents" [value]="a.id">{{ a.fullName }}</option>
         </select>
-        <button type="button" class="btn btn-primary"
-          [disabled]="!selectedAgent[selectedTicket.id] || assigningId === selectedTicket.id"
-          (click)="assignTicket(selectedTicket.id)">
-          <span *ngIf="assigningId !== selectedTicket.id"><i class="fas fa-user-check"></i> Assign</span>
-          <span *ngIf="assigningId === selectedTicket.id"><span class="btn-spinner-sm"></span> Assigning…</span>
-        </button>
+        <span *ngIf="assigningId === selectedTicket.id" class="btn-spinner-sm-dark" style="flex-shrink:0"></span>
       </div>
     </div>
 
     <div class="modal-actions">
       <button type="button" class="btn btn-secondary" (click)="closeTicketDetail()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ CONFIRM DEACTIVATE ════════════════════ -->
+<div class="modal-backdrop" *ngIf="confirmDeactivateUserId" (click)="cancelDeactivateConfirm()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <h3><i class="fas fa-user-slash"></i> Deactivate user</h3>
+    <p class="modal-confirm-text">This user will not be able to sign in until reactivated. Continue?</p>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-secondary" (click)="cancelDeactivateConfirm()">Cancel</button>
+      <button type="button" class="btn btn-primary" (click)="confirmDeactivateUser()">Deactivate</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ CONFIRM PERMANENT DELETE ════════════════════ -->
+<div class="modal-backdrop" *ngIf="confirmDeleteUserId" (click)="cancelDeleteConfirm()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <h3><i class="fas fa-triangle-exclamation"></i> Permanently delete user</h3>
+    <p class="modal-confirm-text">This removes the user from the database. This cannot be undone. Continue?</p>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-secondary" (click)="cancelDeleteConfirm()">Cancel</button>
+      <button type="button" class="btn btn-danger" (click)="confirmPermanentlyDeleteUser()">Delete permanently</button>
     </div>
   </div>
 </div>
