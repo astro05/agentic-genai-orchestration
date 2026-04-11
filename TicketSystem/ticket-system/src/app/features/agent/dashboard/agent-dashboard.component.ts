@@ -1,7 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TicketService } from '../../../core/services/ticket.service';
 import { AuthService }   from '../../../core/services/auth.service';
-import { TicketDto, TicketStatus, STATUS_LABELS, CATEGORY_LABELS } from '../../../core/models/models';
+import { LiveRefreshService } from '../../../core/services/live-refresh.service';
+import { TicketDto, STATUS_LABELS, CATEGORY_LABELS } from '../../../core/models/models';
 
 @Component({
   selector: 'app-agent-dashboard',
@@ -29,15 +31,20 @@ export class AgentDashboardComponent implements OnInit {
     { label: 'Resolved',    value: 2 }
   ];
 
-  constructor(
-    private ticketService: TicketService,
-    public  authService:   AuthService
-  ) {}
+  private readonly ticketService = inject(TicketService);
+  public  readonly authService   = inject(AuthService);
+  private readonly liveRefresh   = inject(LiveRefreshService);
+  private readonly destroyRef    = inject(DestroyRef);
 
-  ngOnInit(): void { this.load(); }
+  ngOnInit(): void {
+    this.load(false);
+    this.liveRefresh.ticketRefresh$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.load(true));
+  }
 
-  load(): void {
-    this.loading = true;
+  load(silent = false): void {
+    if (!silent) this.loading = true;
     this.ticketService.getAssignedTickets().subscribe({
       next:  t  => { this.tickets = t; this.applyFilter(); this.loading = false; },
       error: () => { this.error = 'Failed to load tickets.'; this.loading = false; }
@@ -61,17 +68,31 @@ export class AgentDashboardComponent implements OnInit {
 
   setFilter(f: string): void { this.filter = f; this.applyFilter(); }
 
+  private statusValueToString(statusValue: number): string {
+    const map: Record<number, string> = { 0: 'Open', 1: 'InProgress', 2: 'Resolved' };
+    return map[statusValue] ?? 'Open';
+  }
+
   updateStatus(ticketId: string, statusValue: number): void {
+    const nextStatus = this.statusValueToString(statusValue);
+    const snapshot = this.tickets.map(t => ({ ...t }));
+    this.tickets = this.tickets.map(t =>
+      t.id === ticketId ? { ...t, status: nextStatus } : t
+    );
+    this.applyFilter();
+
     this.updatingId = ticketId;
     this.updateMsg  = '';
     this.ticketService.updateStatus(ticketId, { status: statusValue }).subscribe({
       next: () => {
         this.updatingId = '';
         this.updateMsg  = 'Status updated successfully.';
-        this.load();
+        this.load(true);
         setTimeout(() => this.updateMsg = '', 3000);
       },
       error: () => {
+        this.tickets = snapshot;
+        this.applyFilter();
         this.updatingId = '';
         this.error = 'Failed to update status.';
       }

@@ -18,8 +18,8 @@
       <h2>Create account</h2>
       <p class="auth-subtitle">Get started in seconds</p>
 
-      <div class="alert alert-error" *ngIf="error">
-        <i class="fas fa-exclamation-circle"></i> {{ error }}
+      <div class="alert alert-error" *ngIf="error()">
+        <i class="fas fa-exclamation-circle"></i> {{ error() }}
       </div>
 
       <form [formGroup]="form" (ngSubmit)="submit()">
@@ -79,9 +79,9 @@
           </p>
         </div>
 
-        <button type="submit" class="btn btn-primary btn-full" [disabled]="loading">
-          <span *ngIf="!loading"><i class="fas fa-user-plus"></i> Create Account</span>
-          <span *ngIf="loading"><span class="btn-spinner"></span> Creating…</span>
+        <button type="submit" class="btn btn-primary btn-full" [disabled]="loading()">
+          <span *ngIf="!loading()"><i class="fas fa-user-plus"></i> Create Account</span>
+          <span *ngIf="loading()"><span class="btn-spinner"></span> Creating…</span>
         </button>
       </form>
 

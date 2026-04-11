@@ -39,13 +39,18 @@ namespace TicketSystem.API.Services
             return BuildAuthResponse(user);
         }
 
-        public async Task<AuthResponse?> LoginAsync(LoginRequest req)
+        public async Task<(AuthResponse? response, string? error)> LoginAsync(LoginRequest req)
         {
-            var user = await _users.Find(u => u.Email == req.Email && u.IsActive).FirstOrDefaultAsync();
-            if (user == null || !BCrypt.Net.BCrypt.Verify(req.Password, user.PasswordHash))
-                return null;
+            // First check if user exists at all (regardless of active status)
+            var user = await _users.Find(u => u.Email == req.Email).FirstOrDefaultAsync();
 
-            return BuildAuthResponse(user);
+            if (user == null || !BCrypt.Net.BCrypt.Verify(req.Password, user.PasswordHash))
+                return (null, "invalid_credentials");
+
+            if (!user.IsActive)
+                return (null, "user_deactivated");
+
+            return (BuildAuthResponse(user), null);
         }
 
         private AuthResponse BuildAuthResponse(User user)

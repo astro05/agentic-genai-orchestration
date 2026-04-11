@@ -1,7 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { finalize } from 'rxjs/operators';
 import { AuthService } from '../../../core/services/auth.service';
+import { readApiErrorMessage } from '../../../core/utils/http-error.util';
 
 @Component({
   selector: 'app-register',
@@ -11,14 +12,13 @@ import { AuthService } from '../../../core/services/auth.service';
 })
 export class RegisterComponent {
   form: FormGroup;
-  loading = false;
-  error   = '';
+  readonly loading = signal(false);
+  readonly error = signal('');
   showPwd = false;
 
   constructor(
     private fb: FormBuilder,
-    private auth: AuthService,
-    private router: Router
+    private auth: AuthService
   ) {
     if (this.auth.isLoggedIn()) this.auth.redirectByRole();
 
@@ -34,14 +34,15 @@ export class RegisterComponent {
 
   submit(): void {
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
-    this.loading = true;
-    this.error   = '';
+    this.loading.set(true);
+    this.error.set('');
 
-    this.auth.register(this.form.value).subscribe({
-      next:  () => { this.loading = false; this.auth.redirectByRole(); },
-      error: (err) => {
-        this.loading = false;
-        this.error = err.error?.message ?? 'Registration failed. Please try again.';
+    this.auth.register(this.form.value).pipe(
+      finalize(() => this.loading.set(false))
+    ).subscribe({
+      next:  () => { this.auth.redirectByRole(); },
+      error: (err: unknown) => {
+        this.error.set(readApiErrorMessage(err, 'Registration failed. Please try again.'));
       }
     });
   }

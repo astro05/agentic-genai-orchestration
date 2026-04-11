@@ -1,7 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { TicketService } from '../../../core/services/ticket.service';
+import { LiveRefreshService } from '../../../core/services/live-refresh.service';
 
 @Component({
   selector: 'app-create-ticket',
@@ -14,6 +15,8 @@ export class CreateTicketComponent {
   loading  = false;
   success  = false;
   error    = '';
+
+  private readonly liveRefresh = inject(LiveRefreshService);
 
   constructor(
     private fb:            FormBuilder,
@@ -39,6 +42,7 @@ export class CreateTicketComponent {
       next: () => {
         this.loading = false;
         this.success = true;
+        this.liveRefresh.bump();
         setTimeout(() => this.router.navigate(['/customer']), 2000);
       },
       error: (err) => {

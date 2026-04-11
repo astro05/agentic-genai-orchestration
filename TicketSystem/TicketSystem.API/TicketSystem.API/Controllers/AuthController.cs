@@ -31,7 +31,11 @@ namespace TicketSystem.API.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest req)
         {
-            var result = await _authService.LoginAsync(req);
+            var (result, error) = await _authService.LoginAsync(req);
+
+            if (error == "user_deactivated")
+                return StatusCode(403, new { message = "user_deactivated" });
+
             if (result == null)
                 return Unauthorized(new { message = "Invalid email or password." });
 

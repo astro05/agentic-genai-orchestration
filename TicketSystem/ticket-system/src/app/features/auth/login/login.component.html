@@ -25,8 +25,8 @@
         <button type="button" class="demo-btn customer" (click)="fillDemo('customer')">Customer</button>
       </div>
 
-      <div class="alert alert-error" *ngIf="error">
-        <i class="fas fa-exclamation-circle"></i> {{ error }}
+      <div class="alert alert-error" *ngIf="error()">
+        <i class="fas fa-exclamation-circle"></i> {{ error() }}
       </div>
 
       <form [formGroup]="form" (ngSubmit)="submit()">
@@ -55,9 +55,9 @@
           </span>
         </div>
 
-        <button type="submit" class="btn btn-primary btn-full" [disabled]="loading">
-          <span *ngIf="!loading"><i class="fas fa-arrow-right-to-bracket"></i> Sign In</span>
-          <span *ngIf="loading"><span class="btn-spinner"></span> Signing in…</span>
+        <button type="submit" class="btn btn-primary btn-full" [disabled]="loading()">
+          <span *ngIf="!loading()"><i class="fas fa-arrow-right-to-bracket"></i> Sign In</span>
+          <span *ngIf="loading()"><span class="btn-spinner"></span> Signing in…</span>
         </button>
       </form>
 
@@ -65,5 +65,34 @@
         Don't have an account? <a routerLink="/register">Create one</a>
       </p>
     </div>
+  </div>
+</div>
+
+<!-- ── Deactivated Account Popup ─────────────────────────── -->
+<div class="popup-backdrop" *ngIf="showDeactivatedPopup()" (click)="closePopup()">
+  <div class="popup-box" (click)="$event.stopPropagation()">
+
+    <div class="popup-icon-wrap">
+      <div class="popup-icon">
+        <i class="fas fa-user-slash"></i>
+      </div>
+    </div>
+
+    <h3 class="popup-title">Account Deactivated</h3>
+
+    <p class="popup-body">
+      Your account has been deactivated.<br>
+      Please contact your administrator to restore access.
+    </p>
+
+    <div class="popup-contact">
+      <i class="fas fa-envelope"></i>
+      <span>admin@ticketsys.com</span>
+    </div>
+
+    <button class="popup-close-btn" (click)="closePopup()">
+      <i class="fas fa-times"></i> Close
+    </button>
+
   </div>
 </div>

@@ -1,6 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AdminService }  from '../../../core/services/admin.service';
 import { AuthService }   from '../../../core/services/auth.service';
+import { LiveRefreshService } from '../../../core/services/live-refresh.service';
 import {
   TicketDto, UserDto, STATUS_LABELS, CATEGORY_LABELS
 } from '../../../core/models/models';
@@ -49,20 +51,27 @@ export class AdminDashboardComponent implements OnInit {
     { label: 'Customer', value: 2 }
   ];
 
-  constructor(
-    private adminService: AdminService,
-    public  authService:  AuthService
-  ) {}
+  private readonly adminService = inject(AdminService);
+  public  readonly authService  = inject(AuthService);
+  private readonly liveRefresh  = inject(LiveRefreshService);
+  private readonly destroyRef   = inject(DestroyRef);
 
   ngOnInit(): void {
-    this.loadTickets();
-    this.loadUsers();
+    this.loadTickets(false);
+    this.loadUsers(false);
     this.loadAgents();
+    this.liveRefresh.ticketRefresh$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.loadTickets(true);
+        this.loadUsers(true);
+        this.loadAgents();
+      });
   }
 
   // ── Tickets ──────────────────────────────────────────────────
-  loadTickets(): void {
-    this.loadingTickets = true;
+  loadTickets(silent = false): void {
+    if (!silent) this.loadingTickets = true;
     this.adminService.getAllTickets().subscribe({
       next:  t  => { this.tickets = t; this.applyTicketFilter(); this.loadingTickets = false; },
       error: () => this.loadingTickets = false
@@ -100,7 +109,7 @@ export class AdminDashboardComponent implements OnInit {
       next: () => {
         this.assigningId = '';
         this.ticketMsg = 'Ticket assigned successfully.';
-        this.loadTickets();
+        this.loadTickets(true);
         setTimeout(() => this.ticketMsg = '', 3000);
       },
       error: () => { this.assigningId = ''; }
@@ -108,8 +117,8 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   // ── Users ────────────────────────────────────────────────────
-  loadUsers(): void {
-    this.loadingUsers = true;
+  loadUsers(silent = false): void {
+    if (!silent) this.loadingUsers = true;
     this.adminService.getAllUsers().subscribe({
       next:  u  => { this.users = u; this.applyUserFilter(); this.loadingUsers = false; },
       error: () => this.loadingUsers = false
@@ -127,7 +136,11 @@ export class AdminDashboardComponent implements OnInit {
   updateRole(userId: string, event: Event): void {
     const val = +(event.target as HTMLSelectElement).value;
     this.adminService.updateRole({ userId, newRole: val }).subscribe({
-      next: () => { this.userMsg = 'Role updated.'; this.loadUsers(); setTimeout(() => this.userMsg = '', 2500); }
+      next: () => {
+        this.userMsg = 'Role updated.';
+        this.loadUsers(true);
+        setTimeout(() => this.userMsg = '', 2500);
+      }
     });
   }
 
@@ -135,7 +148,12 @@ export class AdminDashboardComponent implements OnInit {
     if (!confirm('Deactivate this user?')) return;
     this.deletingId = id;
     this.adminService.deleteUser(id).subscribe({
-      next: () => { this.deletingId = ''; this.userMsg = 'User deactivated.'; this.loadUsers(); setTimeout(() => this.userMsg = '', 2500); },
+      next: () => {
+        this.deletingId = '';
+        this.userMsg = 'User deactivated.';
+        this.loadUsers(true);
+        setTimeout(() => this.userMsg = '', 2500);
+      },
       error: () => this.deletingId = ''
     });
   }
@@ -156,7 +174,7 @@ export class AdminDashboardComponent implements OnInit {
         this.creatingUser = false;
         this.showModal    = false;
         this.userMsg      = 'User created successfully.';
-        this.loadUsers();
+        this.loadUsers(true);
         this.loadAgents();
         setTimeout(() => this.userMsg = '', 3000);
       },

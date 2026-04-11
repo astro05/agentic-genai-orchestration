@@ -1,5 +1,5 @@
 <div class="app-shell">
-  <app-navbar *ngIf="authService.isLoggedIn()"></app-navbar>
+  <app-navbar *ngIf="authService.sessionActive()"></app-navbar>
   <main>
     <router-outlet></router-outlet>
   </main>
