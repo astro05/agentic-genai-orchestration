@@ -86,8 +86,8 @@
 }
 
 .modal-agent-ticket {
-  max-width: 600px;
-  width: 92vw;
+  max-width: min(600px, 100%);
+  width: 100%;
 }
 
 .modal-head {

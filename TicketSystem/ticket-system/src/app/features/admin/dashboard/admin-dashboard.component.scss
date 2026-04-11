@@ -84,6 +84,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
+  min-width: 0;
 }
 
 .agent-select {
@@ -177,8 +178,8 @@
 }
 
 .modal-ticket-detail {
-  max-width: 640px;
-  width: 92vw;
+  max-width: min(640px, 100%);
+  width: 100%;
 }
 
 .modal-head {
@@ -250,8 +251,9 @@
 
 .agent-select.wide {
   flex: 1;
-  min-width: 160px;
-  max-width: 280px;
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
 }
 
 .modal-confirm-text {
