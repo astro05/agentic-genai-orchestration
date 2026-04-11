@@ -65,6 +65,22 @@ namespace TicketSystem.API.DTOs
         public string Notes { get; set; } = string.Empty;
     }
 
+    public class AddTicketMessageRequest
+    {
+        public string Body { get; set; } = string.Empty;
+        public string? ReplyToMessageId { get; set; }
+    }
+
+    public class TicketMessageDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public string AuthorRole { get; set; } = string.Empty;
+        public string AuthorName { get; set; } = string.Empty;
+        public string Body { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+        public string? ReplyToMessageId { get; set; }
+    }
+
     public class TicketDto
     {
         public string Id { get; set; } = string.Empty;
@@ -76,6 +92,7 @@ namespace TicketSystem.API.DTOs
         public string CreatedByName { get; set; } = string.Empty;
         public string? AssignedToName { get; set; }
         public string AgentNotes { get; set; } = string.Empty;
+        public List<TicketMessageDto> Messages { get; set; } = new();
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
     }

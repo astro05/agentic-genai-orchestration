@@ -89,6 +89,20 @@ export interface UpdateTicketNotesRequest {
   notes: string;
 }
 
+export interface AddTicketMessageRequest {
+  body: string;
+  replyToMessageId?: string | null;
+}
+
+export interface TicketMessageDto {
+  id: string;
+  authorRole: string;
+  authorName: string;
+  body: string;
+  createdAt: string;
+  replyToMessageId?: string | null;
+}
+
 export interface AssignTicketRequest {
   agentId: string;
 }
@@ -103,6 +117,7 @@ export interface TicketDto {
   createdByName: string;
   assignedToName?: string;
   agentNotes?: string;
+  messages?: TicketMessageDto[];
   createdAt: string;
   updatedAt: string;
 }

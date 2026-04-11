@@ -17,7 +17,7 @@
         <i class="fas fa-headset" style="color:var(--accent)"></i>
       </div>
       <div class="stat-info">
-        <span class="stat-value">{{ stats.total }}</span>
+        <span class="stat-value">{{ stats().total }}</span>
         <span class="stat-label">Assigned</span>
       </div>
     </div>
@@ -26,7 +26,7 @@
         <i class="fas fa-circle-dot" style="color:var(--status-open)"></i>
       </div>
       <div class="stat-info">
-        <span class="stat-value">{{ stats.open }}</span>
+        <span class="stat-value">{{ stats().open }}</span>
         <span class="stat-label">Open</span>
       </div>
     </div>
@@ -35,7 +35,7 @@
         <i class="fas fa-spinner" style="color:var(--warning)"></i>
       </div>
       <div class="stat-info">
-        <span class="stat-value">{{ stats.inProgress }}</span>
+        <span class="stat-value">{{ stats().inProgress }}</span>
         <span class="stat-label">In Progress</span>
       </div>
     </div>
@@ -44,50 +44,45 @@
         <i class="fas fa-circle-check" style="color:var(--success)"></i>
       </div>
       <div class="stat-info">
-        <span class="stat-value">{{ stats.resolved }}</span>
+        <span class="stat-value">{{ stats().resolved }}</span>
         <span class="stat-label">Resolved</span>
       </div>
     </div>
   </div>
 
-  <!-- Success msg
-  <div class="alert alert-success" *ngIf="updateMsg">
-    <i class="fas fa-check-circle"></i> {{ updateMsg }}
-  </div> -->
-
   <!-- Toolbar -->
   <div class="toolbar">
     <div class="tab-bar">
       <button type="button" *ngFor="let f of filters" class="tab-btn"
-        [class.active]="filter === f" (click)="setFilter(f)">
+        [class.active]="filter() === f" (click)="setFilter(f)">
         {{ f === 'InProgress' ? 'In Progress' : f }}
       </button>
     </div>
     <div class="search-wrap">
       <i class="fas fa-search"></i>
       <input type="text" placeholder="Search by title or customer…"
-        [(ngModel)]="search" (input)="applyFilter()">
+        [value]="search()" (input)="onSearchInput($any($event.target).value)">
     </div>
   </div>
 
   <!-- Loading -->
-  <div class="spinner-wrap" *ngIf="loading"><div class="spinner"></div></div>
+  <div class="spinner-wrap" *ngIf="loading()"><div class="spinner"></div></div>
 
   <!-- Error -->
-  <div class="alert alert-error" *ngIf="error && !loading">
-    <i class="fas fa-exclamation-circle"></i> {{ error }}
+  <div class="alert alert-error" *ngIf="error() && !loading()">
+    <i class="fas fa-exclamation-circle"></i> {{ error() }}
   </div>
 
   <!-- Empty -->
-  <div class="empty-state" *ngIf="!loading && !error && filtered.length === 0">
+  <div class="empty-state" *ngIf="!loading() && !error() && filtered().length === 0">
     <i class="fas fa-inbox"></i>
     <h3>No tickets in queue</h3>
     <p>No tickets assigned to you yet. Check back later or contact your admin.</p>
   </div>
 
   <!-- Table -->
-  <div class="table-wrap" *ngIf="!loading && filtered.length > 0">
-    <p class="row-hint"><i class="fas fa-hand-pointer"></i> Click a row to view full details and add notes.</p>
+  <div class="table-wrap" *ngIf="!loading() && filtered().length > 0">
+    <p class="row-hint"><i class="fas fa-hand-pointer"></i> Click a row to view details and the conversation.</p>
     <table>
       <thead>
         <tr>
@@ -101,7 +96,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let t of filtered" class="data-row" (click)="openTicketDetail(t)">
+        <tr *ngFor="let t of filtered()" class="data-row" (click)="openTicketDetail(t)">
           <td>
             <div class="ticket-title-cell">{{ t.title }}</div>
             <div class="ticket-desc-cell">{{ t.description }}</div>
@@ -122,7 +117,7 @@
                 class="btn btn-sm"
                 [class.btn-primary]="t.status === (s.label === 'In Progress' ? 'InProgress' : s.label)"
                 [class.btn-secondary]="t.status !== (s.label === 'In Progress' ? 'InProgress' : s.label)"
-                [disabled]="updatingId === t.id"
+                [disabled]="updatingId() === t.id"
                 (click)="updateStatus(t.id, s.value)">
                 {{ s.label }}
               </button>
@@ -135,9 +130,10 @@
 
 </div>
 
-<!-- Ticket detail + notes -->
-<div class="modal-backdrop" *ngIf="selectedTicket" (click)="closeTicketDetail()">
+<!-- Ticket detail + conversation -->
+<div class="modal-backdrop" *ngIf="selectedTicket()" (click)="closeTicketDetail()">
   <div class="modal modal-agent-ticket" (click)="$event.stopPropagation()">
+    <ng-container *ngIf="selectedTicket() as st">
     <div class="modal-head">
       <h3><i class="fas fa-ticket-alt"></i> Ticket</h3>
       <button type="button" class="icon-close" (click)="closeTicketDetail()" aria-label="Close">
@@ -147,55 +143,85 @@
 
     <div class="detail-block">
       <label>Title</label>
-      <p class="detail-title">{{ selectedTicket.title }}</p>
+      <p class="detail-title">{{ st.title }}</p>
     </div>
     <div class="detail-block">
       <label>Description</label>
-      <p class="detail-desc">{{ selectedTicket.description }}</p>
+      <p class="detail-desc">{{ st.description }}</p>
     </div>
 
     <div class="detail-grid">
       <div class="detail-block">
         <label>Customer</label>
-        <p>{{ selectedTicket.createdByName }}</p>
+        <p>{{ st.createdByName }}</p>
       </div>
       <div class="detail-block">
         <label>Category</label>
-        <p><span class="category-chip">{{ categoryLabel(selectedTicket.category) }}</span></p>
+        <p><span class="category-chip">{{ categoryLabel(st.category) }}</span></p>
       </div>
       <div class="detail-block">
         <label>Priority</label>
-        <p><span class="badge" [ngClass]="priorityClass(selectedTicket.priority)">{{ selectedTicket.priority }}</span></p>
+        <p><span class="badge" [ngClass]="priorityClass(st.priority)">{{ st.priority }}</span></p>
       </div>
       <div class="detail-block">
         <label>Status</label>
-        <p><span class="badge" [ngClass]="badgeClass(selectedTicket.status)">{{ STATUS_LABELS[selectedTicket.status] }}</span></p>
+        <p><span class="badge" [ngClass]="badgeClass(st.status)">{{ STATUS_LABELS[st.status] }}</span></p>
       </div>
       <div class="detail-block">
         <label>Created</label>
-        <p>{{ selectedTicket.createdAt | date:'medium' }}</p>
+        <p>{{ st.createdAt | date:'medium' }}</p>
       </div>
       <div class="detail-block">
         <label>Last updated</label>
-        <p>{{ selectedTicket.updatedAt | date:'medium' }}</p>
+        <p>{{ st.updatedAt | date:'medium' }}</p>
       </div>
     </div>
 
-    <div class="detail-block notes-block">
-      <label><i class="fas fa-sticky-note"></i> Agent notes (saved to database)</label>
-      <textarea class="notes-input" rows="5" [(ngModel)]="noteDraft"
-        placeholder="Internal notes about this ticket…"></textarea>
-      <div class="notes-actions-container">
-        <div class="notes-actions" style="display: inline-block; margin-right: 16px;">
-          <button type="button" class="btn btn-primary" [disabled]="savingNotes" (click)="saveNotes()">
-            <span *ngIf="!savingNotes"><i class="fas fa-floppy-disk"></i> Save notes</span>
-            <span *ngIf="savingNotes"><span class="btn-spinner-sm"></span> Saving…</span>
+    <div class="detail-block notes-block" *ngIf="st.agentNotes">
+      <label><i class="fas fa-archive"></i> Legacy notes (before threading)</label>
+      <p class="legacy-notes">{{ st.agentNotes }}</p>
+    </div>
+
+    <div class="detail-block conversation-block">
+      <label><i class="fas fa-comments"></i> Conversation</label>
+      <div class="ticket-thread">
+        <div *ngIf="sortedMessages(st).length === 0" class="thread-empty">
+          No messages yet. Add a reply below.
+        </div>
+        <div *ngFor="let m of sortedMessages(st)" class="thread-msg" [ngClass]="messageRoleClass(m.authorRole)">
+          <div class="thread-msg-meta">
+            <span class="thread-author">{{ m.authorName }}</span>
+            <span class="thread-role">{{ m.authorRole }}</span>
+            <span class="thread-time">{{ m.createdAt | date:'medium' }}</span>
+          </div>
+          <div class="thread-reply-ref" *ngIf="m.replyToMessageId">
+            <i class="fas fa-reply"></i> Replying to: {{ replyPreview(m.replyToMessageId) }}
+          </div>
+          <div class="thread-body">{{ m.body }}</div>
+          <button type="button" class="btn btn-sm btn-secondary thread-reply-btn"
+            (click)="setReplyTo(m)">
+            <i class="fas fa-reply"></i> Reply
           </button>
         </div>
+      </div>
 
-        <!-- Success msg -->
-        <div class="alert alert-success" *ngIf="updateMsg" style="display: inline-block; margin: 0;">
-          <i class="fas fa-check-circle"></i> {{ updateMsg }}
+      <div class="reply-hint" *ngIf="replyToMessageId()">
+        Replying to message — <button type="button" class="link-btn" (click)="setReplyTo(null)">Cancel</button>
+      </div>
+
+      <textarea class="notes-input" rows="4"
+        [value]="messageDraft()"
+        (input)="messageDraft.set($any($event.target).value)"
+        placeholder="Write a note or reply…"></textarea>
+      <div class="notes-actions-container">
+        <div class="notes-actions" style="display: inline-block; margin-right: 16px;">
+          <button type="button" class="btn btn-primary" [disabled]="postingMessage()" (click)="sendMessage()">
+            <span *ngIf="!postingMessage()"><i class="fas fa-paper-plane"></i> Send</span>
+            <span *ngIf="postingMessage()"><span class="btn-spinner-sm"></span> Sending…</span>
+          </button>
+        </div>
+        <div class="alert alert-success" *ngIf="updateMsg()" style="display: inline-block; margin: 0;">
+          <i class="fas fa-check-circle"></i> {{ updateMsg() }}
         </div>
       </div>
     </div>
@@ -203,5 +229,6 @@
     <div class="modal-actions">
       <button type="button" class="btn btn-secondary" (click)="closeTicketDetail()">Close</button>
     </div>
+    </ng-container>
   </div>
 </div>

@@ -1,4 +1,5 @@
-﻿using MongoDB.Driver;
+﻿using MongoDB.Bson;
+using MongoDB.Driver;
 using TicketSystem.API.DTOs;
 using TicketSystem.API.Models;
 using TicketSystem.API.Settings;
@@ -88,6 +89,67 @@ namespace TicketSystem.API.Services
             return true;
         }
 
+        // ── Customer / Agent / Admin: Add threaded message ───────
+        public async Task<(TicketMessageDto? message, string? error)> AddMessageAsync(
+            string ticketId,
+            string userId,
+            string userName,
+            UserRole role,
+            AddTicketMessageRequest req)
+        {
+            var body = (req.Body ?? string.Empty).Trim();
+            if (body.Length == 0)
+                return (null, "empty_body");
+            if (body.Length > 8000)
+                return (null, "body_too_long");
+
+            var ticket = await _tickets.Find(t => t.Id == ticketId).FirstOrDefaultAsync();
+            if (ticket == null)
+                return (null, "not_found");
+
+            if (!CanPostMessage(ticket, userId, role))
+                return (null, "forbidden");
+
+            var messages = ticket.Messages ?? new List<TicketMessage>();
+            if (!string.IsNullOrWhiteSpace(req.ReplyToMessageId))
+            {
+                var parentExists = messages.Any(m => m.Id == req.ReplyToMessageId);
+                if (!parentExists)
+                    return (null, "invalid_reply");
+            }
+
+            var msg = new TicketMessage
+            {
+                Id = ObjectId.GenerateNewId().ToString(),
+                AuthorRole = role,
+                AuthorUserId = userId,
+                AuthorName = userName,
+                Body = body,
+                CreatedAt = DateTime.UtcNow,
+                ReplyToMessageId = string.IsNullOrWhiteSpace(req.ReplyToMessageId)
+                    ? null
+                    : req.ReplyToMessageId
+            };
+
+            var update = Builders<Ticket>.Update
+                .Push(t => t.Messages, msg)
+                .Set(t => t.UpdatedAt, DateTime.UtcNow);
+
+            await _tickets.UpdateOneAsync(t => t.Id == ticketId, update);
+            return (MapMessageToDto(msg), null);
+        }
+
+        private static bool CanPostMessage(Ticket ticket, string userId, UserRole role)
+        {
+            if (role == UserRole.Admin)
+                return true;
+            if (role == UserRole.Customer && ticket.CreatedById == userId)
+                return true;
+            if (role == UserRole.Agent && ticket.AssignedToId == userId)
+                return true;
+            return false;
+        }
+
         // ── Admin: Get all tickets ───────────────────────────────
         public async Task<List<TicketDto>> GetAllAsync()
         {
@@ -112,19 +174,38 @@ namespace TicketSystem.API.Services
             return result.MatchedCount > 0;
         }
 
-        private static TicketDto MapToDto(Ticket t) => new()
+        private static TicketDto MapToDto(Ticket t)
         {
-            Id = t.Id!,
-            Title = t.Title,
-            Description = t.Description,
-            Status = t.Status.ToString(),
-            Priority = t.Priority.ToString(),
-            Category = t.Category.ToString(),
-            CreatedByName = t.CreatedByName,
-            AssignedToName = t.AssignedToName,
-            AgentNotes = t.AgentNotes ?? string.Empty,
-            CreatedAt = t.CreatedAt,
-            UpdatedAt = t.UpdatedAt
+            var list = (t.Messages ?? new List<TicketMessage>())
+                .OrderBy(m => m.CreatedAt)
+                .Select(MapMessageToDto)
+                .ToList();
+
+            return new TicketDto
+            {
+                Id = t.Id!,
+                Title = t.Title,
+                Description = t.Description,
+                Status = t.Status.ToString(),
+                Priority = t.Priority.ToString(),
+                Category = t.Category.ToString(),
+                CreatedByName = t.CreatedByName,
+                AssignedToName = t.AssignedToName,
+                AgentNotes = t.AgentNotes ?? string.Empty,
+                Messages = list,
+                CreatedAt = t.CreatedAt,
+                UpdatedAt = t.UpdatedAt
+            };
+        }
+
+        private static TicketMessageDto MapMessageToDto(TicketMessage m) => new()
+        {
+            Id = m.Id,
+            AuthorRole = m.AuthorRole.ToString(),
+            AuthorName = m.AuthorName,
+            Body = m.Body,
+            CreatedAt = m.CreatedAt,
+            ReplyToMessageId = m.ReplyToMessageId
         };
     }
 }

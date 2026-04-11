@@ -3,7 +3,10 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
-  CreateTicketRequest, TicketDto,
+  AddTicketMessageRequest,
+  CreateTicketRequest,
+  TicketDto,
+  TicketMessageDto,
   UpdateTicketNotesRequest,
   UpdateTicketStatusRequest
 } from '../models/models';
@@ -34,5 +37,9 @@ export class TicketService {
 
   updateAgentNotes(id: string, req: UpdateTicketNotesRequest): Observable<any> {
     return this.http.put(`${this.apiUrl}/${id}/notes`, req);
+  }
+
+  addTicketMessage(id: string, req: AddTicketMessageRequest): Observable<TicketMessageDto> {
+    return this.http.post<TicketMessageDto>(`${this.apiUrl}/${id}/messages`, req);
   }
 }

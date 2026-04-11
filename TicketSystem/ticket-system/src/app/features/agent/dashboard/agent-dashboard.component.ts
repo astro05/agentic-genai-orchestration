@@ -1,45 +1,86 @@
-import { Component, DestroyRef, inject, OnInit } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  computed,
+  inject,
+  OnInit,
+  signal
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize } from 'rxjs/operators';
 import { TicketService } from '../../../core/services/ticket.service';
-import { AuthService }   from '../../../core/services/auth.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { LiveRefreshService } from '../../../core/services/live-refresh.service';
-import { TicketDto, STATUS_LABELS, CATEGORY_LABELS } from '../../../core/models/models';
+import {
+  TicketDto,
+  TicketMessageDto,
+  STATUS_LABELS,
+  CATEGORY_LABELS
+} from '../../../core/models/models';
 
 @Component({
   selector: 'app-agent-dashboard',
   templateUrl: './agent-dashboard.component.html',
   styleUrls: ['./agent-dashboard.component.scss'],
-  standalone: false
+  standalone: false,
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AgentDashboardComponent implements OnInit {
-  tickets: TicketDto[] = [];
-  filtered: TicketDto[] = [];
-  loading      = true;
-  error        = '';
-  updateMsg    = '';
-  filter       = 'All';
-  search       = '';
-  updatingId   = '';
+  readonly tickets = signal<TicketDto[]>([]);
+  readonly loading = signal(true);
+  readonly error = signal('');
+  readonly updateMsg = signal('');
+  readonly filter = signal('All');
+  readonly search = signal('');
+  readonly updatingId = signal('');
 
-  selectedTicket: TicketDto | null = null;
-  noteDraft = '';
-  savingNotes = false;
+  readonly selectedTicket = signal<TicketDto | null>(null);
+  readonly messageDraft = signal('');
+  readonly replyToMessageId = signal<string | null>(null);
+  readonly postingMessage = signal(false);
 
-  readonly STATUS_LABELS   = STATUS_LABELS;
+  readonly filtered = computed(() => {
+    const list = this.tickets();
+    let result =
+      this.filter() === 'All'
+        ? [...list]
+        : list.filter(t => t.status === this.filter());
+    const q = this.search().trim().toLowerCase();
+    if (q) {
+      result = result.filter(
+        t =>
+          t.title.toLowerCase().includes(q) ||
+          t.createdByName.toLowerCase().includes(q)
+      );
+    }
+    return result;
+  });
+
+  readonly stats = computed(() => {
+    const t = this.tickets();
+    return {
+      total: t.length,
+      open: t.filter(x => x.status === 'Open').length,
+      inProgress: t.filter(x => x.status === 'InProgress').length,
+      resolved: t.filter(x => x.status === 'Resolved').length
+    };
+  });
+
+  readonly STATUS_LABELS = STATUS_LABELS;
   readonly CATEGORY_LABELS = CATEGORY_LABELS;
   readonly filters = ['All', 'Open', 'InProgress', 'Resolved'];
 
   readonly statusOptions = [
-    { label: 'Open',        value: 0 },
+    { label: 'Open', value: 0 },
     { label: 'In Progress', value: 1 },
-    { label: 'Resolved',    value: 2 }
+    { label: 'Resolved', value: 2 }
   ];
 
   private readonly ticketService = inject(TicketService);
-  public  readonly authService   = inject(AuthService);
-  private readonly liveRefresh   = inject(LiveRefreshService);
-  private readonly destroyRef    = inject(DestroyRef);
+  public readonly authService = inject(AuthService);
+  private readonly liveRefresh = inject(LiveRefreshService);
+  private readonly destroyRef = inject(DestroyRef);
 
   ngOnInit(): void {
     this.load(false);
@@ -49,124 +90,164 @@ export class AgentDashboardComponent implements OnInit {
   }
 
   load(silent = false): void {
-    if (!silent) this.loading = true;
-    this.ticketService.getAssignedTickets().pipe(
-      finalize(() => { this.loading = false; })
-    ).subscribe({
-      next: t => {
-        this.tickets = t;
-        this.applyFilter();
-        if (this.selectedTicket) {
-          const cur = t.find(x => x.id === this.selectedTicket!.id);
-          if (cur) {
-            this.selectedTicket = { ...cur };
-            this.noteDraft = cur.agentNotes ?? '';
+    if (!silent) this.loading.set(true);
+    this.ticketService
+      .getAssignedTickets()
+      .pipe(finalize(() => this.loading.set(false)))
+      .subscribe({
+        next: t => {
+          this.tickets.set(t);
+          const sel = this.selectedTicket();
+          if (sel) {
+            const cur = t.find(x => x.id === sel.id);
+            if (cur) this.selectedTicket.set({ ...cur });
           }
-        }
-      },
-      error: () => { this.error = 'Failed to load tickets.'; }
-    });
+        },
+        error: () => this.error.set('Failed to load tickets.')
+      });
   }
 
-  applyFilter(): void {
-    let result = this.filter === 'All'
-      ? [...this.tickets]
-      : this.tickets.filter(t => t.status === this.filter);
-
-    if (this.search.trim()) {
-      const q = this.search.toLowerCase();
-      result = result.filter(t =>
-        t.title.toLowerCase().includes(q) ||
-        t.createdByName.toLowerCase().includes(q)
-      );
-    }
-    this.filtered = result;
+  setFilter(f: string): void {
+    this.filter.set(f);
   }
 
-  setFilter(f: string): void { this.filter = f; this.applyFilter(); }
+  onSearchInput(v: string): void {
+    this.search.set(v);
+  }
 
   openTicketDetail(t: TicketDto): void {
-    this.selectedTicket = { ...t };
-    this.noteDraft = t.agentNotes ?? '';
+    this.selectedTicket.set({ ...t });
+    this.messageDraft.set('');
+    this.replyToMessageId.set(null);
   }
 
   closeTicketDetail(): void {
-    this.selectedTicket = null;
-    this.noteDraft = '';
-    this.savingNotes = false;
+    this.selectedTicket.set(null);
+    this.messageDraft.set('');
+    this.replyToMessageId.set(null);
+    this.postingMessage.set(false);
   }
 
-  saveNotes(): void {
-    if (!this.selectedTicket) return;
-    const id = this.selectedTicket.id;
-    const notes = this.noteDraft;
-    this.savingNotes = false;
-    this.ticketService.updateAgentNotes(id, { notes }).pipe(
-      finalize(() => { this.savingNotes = false; })
-    ).subscribe({
-      next: () => {
-        this.updateMsg = 'Notes saved to ticket.';
-        this.tickets = this.tickets.map(x =>
-          x.id === id ? { ...x, agentNotes: notes } : x
-        );
-        this.selectedTicket = { ...this.selectedTicket!, agentNotes: notes };
-        this.applyFilter();
-        setTimeout(() => this.updateMsg = '', 3000);
-      },
-      error: () => {
-        this.error = 'Could not save notes.';
-        setTimeout(() => this.error = '', 4000);
-      }
-    });
+  setReplyTo(m: TicketMessageDto | null): void {
+    this.replyToMessageId.set(m?.id ?? null);
+  }
+
+  replyPreview(messageId: string | null | undefined): string {
+    if (!messageId) return '';
+    const list = this.selectedTicket()?.messages ?? [];
+    const m = list.find(x => x.id === messageId);
+    if (!m) return '';
+    const t = m.body.trim();
+    return t.length > 100 ? `${t.slice(0, 100)}…` : t;
+  }
+
+  sortedMessages(t: TicketDto): TicketMessageDto[] {
+    const m = t.messages ?? [];
+    return [...m].sort(
+      (a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
+  }
+
+  sendMessage(): void {
+    const ticket = this.selectedTicket();
+    if (!ticket) return;
+    const body = this.messageDraft().trim();
+    if (!body) return;
+
+    const replyTo = this.replyToMessageId();
+    this.postingMessage.set(true);
+    this.ticketService
+      .addTicketMessage(ticket.id, {
+        body,
+        replyToMessageId: replyTo
+      })
+      .pipe(finalize(() => this.postingMessage.set(false)))
+      .subscribe({
+        next: msg => {
+          this.mergeMessage(ticket.id, msg);
+          this.messageDraft.set('');
+          this.replyToMessageId.set(null);
+          this.updateMsg.set('Message posted.');
+          this.liveRefresh.bump();
+          setTimeout(() => this.updateMsg.set(''), 3000);
+        },
+        error: () => {
+          this.error.set('Could not send message.');
+          setTimeout(() => this.error.set(''), 4000);
+        }
+      });
+  }
+
+  private mergeMessage(ticketId: string, msg: TicketMessageDto): void {
+    const now = new Date().toISOString();
+    this.tickets.update(arr =>
+      arr.map(t => {
+        if (t.id !== ticketId) return t;
+        const messages = [...(t.messages ?? []), msg];
+        return { ...t, messages, updatedAt: now };
+      })
+    );
+    const sel = this.selectedTicket();
+    if (sel?.id === ticketId) {
+      const messages = [...(sel.messages ?? []), msg];
+      this.selectedTicket.set({ ...sel, messages, updatedAt: now });
+    }
   }
 
   private statusValueToString(statusValue: number): string {
-    const map: Record<number, string> = { 0: 'Open', 1: 'InProgress', 2: 'Resolved' };
+    const map: Record<number, string> = {
+      0: 'Open',
+      1: 'InProgress',
+      2: 'Resolved'
+    };
     return map[statusValue] ?? 'Open';
   }
 
   updateStatus(ticketId: string, statusValue: number): void {
     const nextStatus = this.statusValueToString(statusValue);
-    const snapshot = this.tickets.map(t => ({ ...t }));
-    this.tickets = this.tickets.map(t =>
-      t.id === ticketId ? { ...t, status: nextStatus } : t
+    const snapshot = this.tickets().map(t => ({ ...t }));
+    this.tickets.update(arr =>
+      arr.map(t => (t.id === ticketId ? { ...t, status: nextStatus } : t))
     );
-    this.applyFilter();
 
-    this.updatingId = '';
-    this.updateMsg  = '';
+    this.updatingId.set('');
+    this.updateMsg.set('');
     this.ticketService.updateStatus(ticketId, { status: statusValue }).subscribe({
       next: () => {
-        this.updatingId = '';
-        this.updateMsg  = 'Status updated successfully.';
+        this.updatingId.set('');
+        this.updateMsg.set('Status updated successfully.');
         this.load(true);
-        setTimeout(() => this.updateMsg = '', 3000);
+        setTimeout(() => this.updateMsg.set(''), 3000);
       },
       error: () => {
-        this.tickets = snapshot;
-        this.applyFilter();
-        this.updatingId = '';
-        this.error = 'Failed to update status.';
+        this.tickets.set(snapshot);
+        this.updatingId.set('');
+        this.error.set('Failed to update status.');
       }
     });
   }
 
-  get stats() {
-    return {
-      total:      this.tickets.length,
-      open:       this.tickets.filter(t => t.status === 'Open').length,
-      inProgress: this.tickets.filter(t => t.status === 'InProgress').length,
-      resolved:   this.tickets.filter(t => t.status === 'Resolved').length,
-    };
-  }
-
   badgeClass(status: string): string {
     const map: Record<string, string> = {
-      Open: 'badge-open', InProgress: 'badge-inprogress', Resolved: 'badge-resolved'
+      Open: 'badge-open',
+      InProgress: 'badge-inprogress',
+      Resolved: 'badge-resolved'
     };
     return map[status] ?? '';
   }
 
-  priorityClass(p: string): string { return `badge-${p.toLowerCase()}`; }
-  categoryLabel(c: string): string { return this.CATEGORY_LABELS[c] ?? c; }
+  priorityClass(p: string): string {
+    return `badge-${p.toLowerCase()}`;
+  }
+
+  categoryLabel(c: string): string {
+    return this.CATEGORY_LABELS[c] ?? c;
+  }
+
+  messageRoleClass(role: string): string {
+    if (role === 'Agent') return 'msg-agent';
+    if (role === 'Admin') return 'msg-admin';
+    return 'msg-customer';
+  }
 }

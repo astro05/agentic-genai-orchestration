@@ -49,5 +49,8 @@ namespace TicketSystem.API.Models
 
         [BsonElement("agentNotes")]
         public string AgentNotes { get; set; } = string.Empty;
+
+        [BsonElement("messages")]
+        public List<TicketMessage> Messages { get; set; } = new();
     }
 }

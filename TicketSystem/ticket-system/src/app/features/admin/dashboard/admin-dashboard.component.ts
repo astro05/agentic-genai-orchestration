@@ -6,8 +6,13 @@ import { AdminService }  from '../../../core/services/admin.service';
 import { AuthService }   from '../../../core/services/auth.service';
 import { LiveRefreshService } from '../../../core/services/live-refresh.service';
 import {
-  TicketDto, UserDto, STATUS_LABELS, CATEGORY_LABELS
+  TicketDto,
+  TicketMessageDto,
+  UserDto,
+  STATUS_LABELS,
+  CATEGORY_LABELS
 } from '../../../core/models/models';
+import { TicketService } from '../../../core/services/ticket.service';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -29,6 +34,9 @@ export class AdminDashboardComponent implements OnInit {
   selectedAgent: Record<string, string> = {};
   ticketMsg = '';
   selectedTicket: TicketDto | null = null;
+  messageDraft = '';
+  replyToMessageId: string | null = null;
+  postingMessage = false;
 
   // ── Users ────────────────────────────────────────────────────
   users:         UserDto[] = [];
@@ -61,6 +69,7 @@ export class AdminDashboardComponent implements OnInit {
   ];
 
   private readonly adminService = inject(AdminService);
+  private readonly ticketService = inject(TicketService);
   public  readonly authService  = inject(AuthService);
   private readonly liveRefresh  = inject(LiveRefreshService);
   private readonly destroyRef   = inject(DestroyRef);
@@ -154,12 +163,79 @@ export class AdminDashboardComponent implements OnInit {
 
   openTicketDetail(t: TicketDto): void {
     this.selectedTicket = { ...t };
+    this.messageDraft = '';
+    this.replyToMessageId = null;
     const match = this.agents.find(a => a.fullName === t.assignedToName);
     this.selectedAgent[t.id] = match?.id ?? this.selectedAgent[t.id] ?? '';
   }
 
   closeTicketDetail(): void {
     this.selectedTicket = null;
+    this.messageDraft = '';
+    this.replyToMessageId = null;
+    this.postingMessage = false;
+  }
+
+  setReplyTo(m: TicketMessageDto | null): void {
+    this.replyToMessageId = m?.id ?? null;
+  }
+
+  replyPreview(messageId: string | null | undefined): string {
+    if (!messageId || !this.selectedTicket) return '';
+    const list = this.selectedTicket.messages ?? [];
+    const m = list.find(x => x.id === messageId);
+    if (!m) return '';
+    const text = m.body.trim();
+    return text.length > 100 ? `${text.slice(0, 100)}…` : text;
+  }
+
+  sortedMessages(t: TicketDto): TicketMessageDto[] {
+    const m = t.messages ?? [];
+    return [...m].sort(
+      (a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
+  }
+
+  sendAdminMessage(): void {
+    const ticket = this.selectedTicket;
+    if (!ticket) return;
+    const body = this.messageDraft.trim();
+    if (!body) return;
+    this.postingMessage = true;
+    this.ticketService
+      .addTicketMessage(ticket.id, {
+        body,
+        replyToMessageId: this.replyToMessageId
+      })
+      .pipe(finalize(() => { this.postingMessage = false; }))
+      .subscribe({
+        next: msg => {
+          const now = new Date().toISOString();
+          const patch = (t: TicketDto): TicketDto =>
+            t.id === ticket.id
+              ? { ...t, messages: [...(t.messages ?? []), msg], updatedAt: now }
+              : t;
+          this.tickets = this.tickets.map(patch);
+          this.filteredTickets = this.filteredTickets.map(patch);
+          if (this.selectedTicket?.id === ticket.id) {
+            const messages = [...(this.selectedTicket.messages ?? []), msg];
+            this.selectedTicket = { ...this.selectedTicket, messages, updatedAt: now };
+          }
+          this.messageDraft = '';
+          this.replyToMessageId = null;
+          this.ticketMsg = 'Message posted.';
+          this.liveRefresh.bump();
+          setTimeout(() => { this.ticketMsg = ''; }, 3000);
+        },
+        error: () => { this.ticketMsg = 'Could not post message.'; }
+      });
+  }
+
+  messageRoleClass(role: string): string {
+    if (role === 'Agent') return 'msg-agent';
+    if (role === 'Admin') return 'msg-admin';
+    return 'msg-customer';
   }
 
   assignTicket(ticketId: string, agentId: string): void {

@@ -94,5 +94,28 @@ namespace TicketSystem.API.Controllers
             if (!success) return NotFound(new { message = "Ticket not found or not assigned to you." });
             return Ok(new { message = "Notes saved." });
         }
+
+        // ── Customer / Agent / Admin: Add conversation message ───
+        [HttpPost("{id}/messages")]
+        [Authorize(Roles = "Customer,Agent,Admin")]
+        public async Task<IActionResult> AddMessage(string id, [FromBody] AddTicketMessageRequest req)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
+            var userName = User.FindFirst(ClaimTypes.Name)?.Value ?? "";
+            var roleStr = User.FindFirst(ClaimTypes.Role)?.Value ?? nameof(UserRole.Customer);
+            if (!Enum.TryParse<UserRole>(roleStr, out var role))
+                role = UserRole.Customer;
+
+            var (message, error) = await _ticketService.AddMessageAsync(id, userId, userName, role, req);
+            return error switch
+            {
+                "empty_body" => BadRequest(new { message = "Message cannot be empty." }),
+                "body_too_long" => BadRequest(new { message = "Message must be 8000 characters or less." }),
+                "not_found" => NotFound(new { message = "Ticket not found." }),
+                "forbidden" => StatusCode(403, new { message = "You cannot post on this ticket." }),
+                "invalid_reply" => BadRequest(new { message = "Reply target was not found on this ticket." }),
+                _ => Ok(message)
+            };
+        }
     }
 }

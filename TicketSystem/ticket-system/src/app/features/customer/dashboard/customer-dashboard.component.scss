@@ -49,7 +49,7 @@
   border-radius: var(--radius-lg);
   padding: 20px;
   transition: border-color var(--transition), transform var(--transition), box-shadow var(--transition);
-  cursor: default;
+  cursor: pointer;
 
   &:hover {
     border-color: var(--text-muted);
@@ -106,3 +106,18 @@
 }
 
 .meta-date { margin-left: auto; }
+
+.notes-input {
+  width: 100%;
+  margin-top: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+  line-height: 1.45;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  resize: vertical;
+  min-height: 100px;
+  box-sizing: border-box;
+}

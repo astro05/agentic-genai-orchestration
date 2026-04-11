@@ -317,6 +317,41 @@
       </div>
     </div>
 
+    <div class="detail-block conversation-block" *ngIf="selectedTicket as st">
+      <label><i class="fas fa-comments"></i> Conversation</label>
+      <div class="ticket-thread">
+        <div *ngIf="sortedMessages(st).length === 0" class="thread-empty">
+          No messages yet.
+        </div>
+        <div *ngFor="let m of sortedMessages(st)" class="thread-msg" [ngClass]="messageRoleClass(m.authorRole)">
+          <div class="thread-msg-meta">
+            <span class="thread-author">{{ m.authorName }}</span>
+            <span class="thread-role">{{ m.authorRole }}</span>
+            <span class="thread-time">{{ m.createdAt | date:'medium' }}</span>
+          </div>
+          <div class="thread-reply-ref" *ngIf="m.replyToMessageId">
+            <i class="fas fa-reply"></i> Replying to: {{ replyPreview(m.replyToMessageId) }}
+          </div>
+          <div class="thread-body">{{ m.body }}</div>
+          <button type="button" class="btn btn-sm btn-secondary thread-reply-btn"
+            (click)="setReplyTo(m)">
+            <i class="fas fa-reply"></i> Reply
+          </button>
+        </div>
+      </div>
+      <div class="reply-hint" *ngIf="replyToMessageId">
+        Replying — <button type="button" class="link-btn" (click)="setReplyTo(null)">Cancel</button>
+      </div>
+      <textarea class="admin-notes-input" rows="3" [(ngModel)]="messageDraft"
+        placeholder="Add an admin note (visible to agent and customer in thread)…"></textarea>
+      <div style="margin-top:10px">
+        <button type="button" class="btn btn-primary" [disabled]="postingMessage" (click)="sendAdminMessage()">
+          <span *ngIf="!postingMessage"><i class="fas fa-paper-plane"></i> Send</span>
+          <span *ngIf="postingMessage"><span class="btn-spinner-sm"></span> Sending…</span>
+        </button>
+      </div>
+    </div>
+
     <div class="modal-actions">
       <button type="button" class="btn btn-secondary" (click)="closeTicketDetail()">Close</button>
     </div>
