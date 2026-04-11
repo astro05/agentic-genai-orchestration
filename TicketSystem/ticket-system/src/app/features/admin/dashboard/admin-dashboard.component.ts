@@ -36,6 +36,8 @@ export class AdminDashboardComponent implements OnInit {
   loadingUsers  = true;
   userActionBusyId = '';
   userMsg       = '';
+  // tracks the pending dropdown selection per user (separate from committed role)
+  pendingRole: Record<string, string> = {};
 
   // ── New user modal ───────────────────────────────────────────
   showModal    = false;
@@ -157,7 +159,16 @@ export class AdminDashboardComponent implements OnInit {
     this.adminService.getAllUsers().pipe(
       finalize(() => { this.loadingUsers = false; })
     ).subscribe({
-      next: u => { this.users = u; this.applyUserFilter(); },
+      next: u => {
+        this.users = u;
+        // seed pendingRole only for users not already tracked
+        u.forEach(user => {
+          if (!(user.id in this.pendingRole)) {
+            this.pendingRole[user.id] = '';
+          }
+        });
+        this.applyUserFilter();
+      },
       error: () => { }
     });
   }
@@ -170,16 +181,34 @@ export class AdminDashboardComponent implements OnInit {
     );
   }
 
-  updateRole(userId: string, event: Event): void {
-    const val = +(event.target as HTMLSelectElement).value;
-    this.adminService.updateRole({ userId, newRole: val }).subscribe({
+  updateRole(userId: string, newRoleValue: number): void {
+    const roleNames: Record<number, string> = { 0: 'Admin', 1: 'Agent', 2: 'Customer' };
+    const newRoleName = roleNames[newRoleValue];
+    if (!newRoleName) return;
+
+    // ── Optimistic update: reflect the change immediately in the table ──
+    const updateInList = (list: UserDto[]) => {
+      const idx = list.findIndex(u => u.id === userId);
+      if (idx !== -1) list[idx] = { ...list[idx], role: newRoleName };
+    };
+    updateInList(this.users);
+    updateInList(this.filteredUsers);
+
+    // Reset the dropdown back to placeholder after commit
+    this.pendingRole[userId] = '';
+
+    this.adminService.updateRole({ userId, newRole: newRoleValue }).subscribe({
       next: () => {
-        this.userMsg = 'Role updated.';
-        this.loadUsers(true);
+        this.userMsg = `Role changed to ${newRoleName}.`;
         this.loadAgents();
         setTimeout(() => this.userMsg = '', 2500);
       },
-      error: () => { this.userMsg = 'Could not update role.'; setTimeout(() => this.userMsg = '', 3000); }
+      error: () => {
+        // Rollback on failure — reload from server
+        this.userMsg = 'Could not update role. Change reverted.';
+        this.loadUsers(true);
+        setTimeout(() => this.userMsg = '', 3000);
+      }
     });
   }
 

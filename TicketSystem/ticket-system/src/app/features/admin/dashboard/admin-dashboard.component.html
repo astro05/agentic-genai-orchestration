@@ -214,9 +214,14 @@
               </span>
             </td>
             <td>
-              <select class="role-select" [value]="u.role === 'Admin' ? 0 : u.role === 'Agent' ? 1 : 2"
-                (change)="updateRole(u.id, $event)">
-                <option *ngFor="let r of roleOptions" [value]="r.value">{{ r.label }}</option>
+              <select class="role-select"
+                [ngModel]="pendingRole[u.id]"
+                (ngModelChange)="updateRole(u.id, +$event)">
+                <option value="" disabled selected>Change role…</option>
+                <option *ngFor="let r of roleOptions" [value]="r.value"
+                  [disabled]="u.role === r.label">
+                  {{ r.label }}
+                </option>
               </select>
             </td>
             <td class="date-cell">{{ u.createdAt | date:'MMM d, y' }}</td>
