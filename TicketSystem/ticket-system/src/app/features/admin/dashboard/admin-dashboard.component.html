@@ -15,7 +15,7 @@
         <i class="fas fa-ticket-alt" style="color:var(--accent)"></i>
       </div>
       <div class="stat-info">
-        <span class="stat-value">{{ ticketStats.total }}</span>
+        <span class="stat-value">{{ ticketStats().total }}</span>
         <span class="stat-label">Total Tickets</span>
       </div>
     </div>
@@ -24,7 +24,7 @@
         <i class="fas fa-circle-dot" style="color:var(--status-open)"></i>
       </div>
       <div class="stat-info">
-        <span class="stat-value">{{ ticketStats.open }}</span>
+        <span class="stat-value">{{ ticketStats().open }}</span>
         <span class="stat-label">Open</span>
       </div>
     </div>
@@ -33,7 +33,7 @@
         <i class="fas fa-spinner" style="color:var(--warning)"></i>
       </div>
       <div class="stat-info">
-        <span class="stat-value">{{ ticketStats.inProgress }}</span>
+        <span class="stat-value">{{ ticketStats().inProgress }}</span>
         <span class="stat-label">In Progress</span>
       </div>
     </div>
@@ -42,7 +42,7 @@
         <i class="fas fa-circle-check" style="color:var(--success)"></i>
       </div>
       <div class="stat-info">
-        <span class="stat-value">{{ ticketStats.resolved }}</span>
+        <span class="stat-value">{{ ticketStats().resolved }}</span>
         <span class="stat-label">Resolved</span>
       </div>
     </div>
@@ -51,7 +51,7 @@
         <i class="fas fa-triangle-exclamation" style="color:var(--danger)"></i>
       </div>
       <div class="stat-info">
-        <span class="stat-value">{{ ticketStats.unassigned }}</span>
+        <span class="stat-value">{{ ticketStats().unassigned }}</span>
         <span class="stat-label">Unassigned</span>
       </div>
     </div>
@@ -60,7 +60,7 @@
         <i class="fas fa-users" style="color:var(--accent)"></i>
       </div>
       <div class="stat-info">
-        <span class="stat-value">{{ users.length }}</span>
+        <span class="stat-value">{{ users().length }}</span>
         <span class="stat-label">Total Users</span>
       </div>
     </div>
@@ -68,44 +68,38 @@
 
   <!-- Tabs -->
   <div class="tab-bar">
-    <button class="tab-btn" [class.active]="activeTab==='tickets'" (click)="activeTab='tickets'">
+    <button type="button" class="tab-btn" [class.active]="activeTab()==='tickets'" (click)="activeTab.set('tickets')">
       <i class="fas fa-ticket-alt"></i> Tickets
     </button>
-    <button class="tab-btn" [class.active]="activeTab==='users'" (click)="activeTab='users'">
+    <button type="button" class="tab-btn" [class.active]="activeTab()==='users'" (click)="activeTab.set('users')">
       <i class="fas fa-users"></i> Users
     </button>
   </div>
 
   <!-- ═══════════════ TICKETS TAB ══════════════════════════ -->
-  <div *ngIf="activeTab === 'tickets'">
-
-    <!-- <div class="alert alert-success" *ngIf="ticketMsg">
-      <i class="fas fa-check-circle"></i> {{ ticketMsg }}
-    </div> -->
+  <div *ngIf="activeTab() === 'tickets'">
 
     <div class="toolbar">
       <div class="tab-bar" style="margin-bottom:0">
-        <button *ngFor="let f of ticketFilters" class="tab-btn"
-          [class.active]="ticketFilter===f" (click)="setTicketFilter(f)">
+        <button type="button" *ngFor="let f of ticketFilters" class="tab-btn"
+          [class.active]="ticketFilter()===f" (click)="setTicketFilter(f)">
           {{ f === 'InProgress' ? 'In Progress' : f }}
         </button>
       </div>
       <div class="search-wrap">
         <i class="fas fa-search"></i>
         <input type="text" placeholder="Search tickets…"
-          [(ngModel)]="ticketSearch" (input)="applyTicketFilter()">
+          [value]="ticketSearch()" (input)="onTicketSearchInput($any($event.target).value)">
       </div>
     </div>
 
-    <!-- <div class="spinner-wrap" *ngIf="loadingTickets"><div class="spinner"></div></div> -->
-
-    <div class="empty-state" *ngIf="!loadingTickets && filteredTickets.length===0">
+    <div class="empty-state" *ngIf="!loadingTickets() && filteredTickets().length===0">
       <i class="fas fa-inbox"></i>
       <h3>No tickets found</h3>
       <p>No tickets match your current filter.</p>
     </div>
 
-    <div class="table-wrap" *ngIf="!loadingTickets && filteredTickets.length > 0">
+    <div class="table-wrap" *ngIf="!loadingTickets() && filteredTickets().length > 0">
       <table>
         <thead>
           <tr>
@@ -120,7 +114,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let t of filteredTickets" class="data-row" (click)="openTicketDetail(t)">
+          <tr *ngFor="let t of filteredTickets()" class="data-row" (click)="openTicketDetail(t)">
             <td>
               <div class="ticket-title-cell">{{ t.title }}</div>
               <div class="ticket-desc-cell">{{ t.description }}</div>
@@ -144,11 +138,11 @@
             </td>
             <td (click)="$event.stopPropagation()">
               <select class="agent-select"
-                [ngModel]="selectedAgent[t.id]"
+                [ngModel]="selectedAgentIdFor(t.id)"
                 (ngModelChange)="assignTicket(t.id, $event)"
-                [disabled]="assigningId === t.id">
+                [disabled]="assigningId() === t.id">
                 <option value="">Select agent…</option>
-                <option *ngFor="let a of agents" [value]="a.id">{{ a.fullName }}</option>
+                <option *ngFor="let a of agents()" [value]="a.id">{{ a.fullName }}</option>
               </select>
             </td>
             <td class="date-cell">{{ t.createdAt | date:'MMM d' }}</td>
@@ -159,26 +153,24 @@
   </div>
 
   <!-- ═══════════════ USERS TAB ════════════════════════════ -->
-  <div *ngIf="activeTab === 'users'">
+  <div *ngIf="activeTab() === 'users'">
 
-    <div class="alert alert-success" *ngIf="userMsg">
-      <i class="fas fa-check-circle"></i> {{ userMsg }}
+    <div class="alert alert-success" *ngIf="userMsg()">
+      <i class="fas fa-check-circle"></i> {{ userMsg() }}
     </div>
 
     <div class="toolbar">
       <div class="search-wrap">
         <i class="fas fa-search"></i>
         <input type="text" placeholder="Search users…"
-          [(ngModel)]="userSearch" (input)="applyUserFilter()">
+          [value]="userSearch()" (input)="onUserSearchInput($any($event.target).value)">
       </div>
-      <button class="btn btn-primary" (click)="openModal()">
+      <button type="button" class="btn btn-primary" (click)="openModal()">
         <i class="fas fa-user-plus"></i> Create User
       </button>
     </div>
 
-    <!-- <div class="spinner-wrap" *ngIf="loadingUsers"><div class="spinner"></div></div> -->
-
-    <div class="table-wrap" *ngIf="!loadingUsers && filteredUsers.length > 0">
+    <div class="table-wrap" *ngIf="!loadingUsers() && filteredUsers().length > 0">
       <table>
         <thead>
           <tr>
@@ -192,7 +184,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let u of filteredUsers">
+          <tr *ngFor="let u of filteredUsers()">
             <td>
               <div class="customer-cell">
                 <div class="avatar-sm">{{ u.fullName.charAt(0) }}</div>
@@ -210,7 +202,7 @@
             </td>
             <td>
               <select class="role-select"
-                [ngModel]="pendingRole[u.id]"
+                [ngModel]="pendingRole()[u.id]"
                 (ngModelChange)="updateRole(u.id, +$event)">
                 <option value="" disabled selected>Change role…</option>
                 <option *ngFor="let r of roleOptions" [value]="r.value"
@@ -224,24 +216,24 @@
               <div class="user-actions">
                 <button type="button" class="btn btn-sm btn-secondary"
                   *ngIf="u.isActive"
-                  [disabled]="userActionBusyId === u.id"
+                  [disabled]="userActionBusyId() === u.id"
                   (click)="openDeactivateConfirm(u.id)">
-                  <span *ngIf="userActionBusyId !== u.id"><i class="fas fa-user-slash"></i> Deactivate</span>
-                  <span *ngIf="userActionBusyId === u.id"><span class="btn-spinner-sm-dark"></span></span>
+                  <span *ngIf="userActionBusyId() !== u.id"><i class="fas fa-user-slash"></i> Deactivate</span>
+                  <span *ngIf="userActionBusyId() === u.id"><span class="btn-spinner-sm-dark"></span></span>
                 </button>
                 <button type="button" class="btn btn-sm btn-primary"
                   *ngIf="!u.isActive"
-                  [disabled]="userActionBusyId === u.id"
+                  [disabled]="userActionBusyId() === u.id"
                   (click)="activateUser(u.id)">
-                  <span *ngIf="userActionBusyId !== u.id"><i class="fas fa-user-check"></i> Activate</span>
-                  <span *ngIf="userActionBusyId === u.id"><span class="btn-spinner-sm"></span></span>
+                  <span *ngIf="userActionBusyId() !== u.id"><i class="fas fa-user-check"></i> Activate</span>
+                  <span *ngIf="userActionBusyId() === u.id"><span class="btn-spinner-sm"></span></span>
                 </button>
                 <button type="button" class="btn btn-sm btn-danger"
-                  [disabled]="userActionBusyId === u.id || u.id === authService.currentUser?.userId"
+                  [disabled]="userActionBusyId() === u.id || u.id === authService.currentUser?.userId"
                   (click)="openDeleteConfirm(u.id)"
                   [title]="u.id === authService.currentUser?.userId ? 'Cannot delete your own account' : ''">
-                  <span *ngIf="userActionBusyId !== u.id"><i class="fas fa-trash"></i> Delete</span>
-                  <span *ngIf="userActionBusyId === u.id"><span class="btn-spinner-sm"></span></span>
+                  <span *ngIf="userActionBusyId() !== u.id"><i class="fas fa-trash"></i> Delete</span>
+                  <span *ngIf="userActionBusyId() === u.id"><span class="btn-spinner-sm"></span></span>
                 </button>
               </div>
             </td>
@@ -254,8 +246,9 @@
 </div>
 
 <!-- ═══════════════ TICKET DETAIL MODAL ════════════════════ -->
-<div class="modal-backdrop" *ngIf="selectedTicket" (click)="closeTicketDetail()">
+<div class="modal-backdrop" *ngIf="selectedTicket()" (click)="closeTicketDetail()">
   <div class="modal modal-ticket-detail" (click)="$event.stopPropagation()">
+    <ng-container *ngIf="selectedTicket() as st">
     <div class="modal-head">
       <h3><i class="fas fa-ticket-alt"></i> Ticket details</h3>
       <button type="button" class="icon-close" (click)="closeTicketDetail()" aria-label="Close">
@@ -265,41 +258,41 @@
 
     <div class="detail-block">
       <label>Title</label>
-      <p class="detail-title">{{ selectedTicket.title }}</p>
+      <p class="detail-title">{{ st.title }}</p>
     </div>
     <div class="detail-block">
       <label>Description</label>
-      <p class="detail-desc">{{ selectedTicket.description }}</p>
+      <p class="detail-desc">{{ st.description }}</p>
     </div>
 
     <div class="detail-grid">
       <div class="detail-block">
         <label>Customer</label>
-        <p>{{ selectedTicket.createdByName }}</p>
+        <p>{{ st.createdByName }}</p>
       </div>
       <div class="detail-block">
         <label>Category</label>
-        <p><span class="category-chip">{{ categoryLabel(selectedTicket.category) }}</span></p>
+        <p><span class="category-chip">{{ categoryLabel(st.category) }}</span></p>
       </div>
       <div class="detail-block">
         <label>Priority</label>
-        <p><span class="badge" [ngClass]="priorityClass(selectedTicket.priority)">{{ selectedTicket.priority }}</span></p>
+        <p><span class="badge" [ngClass]="priorityClass(st.priority)">{{ st.priority }}</span></p>
       </div>
       <div class="detail-block">
         <label>Status</label>
-        <p><span class="badge" [ngClass]="badgeClass(selectedTicket.status)">{{ STATUS_LABELS[selectedTicket.status] }}</span></p>
+        <p><span class="badge" [ngClass]="badgeClass(st.status)">{{ STATUS_LABELS[st.status] }}</span></p>
       </div>
       <div class="detail-block">
         <label>Assigned to</label>
-        <p>{{ selectedTicket.assignedToName || '— Unassigned —' }}</p>
+        <p>{{ st.assignedToName || '— Unassigned —' }}</p>
       </div>
       <div class="detail-block">
         <label>Created</label>
-        <p>{{ selectedTicket.createdAt | date:'medium' }}</p>
+        <p>{{ st.createdAt | date:'medium' }}</p>
       </div>
       <div class="detail-block">
         <label>Last updated</label>
-        <p>{{ selectedTicket.updatedAt | date:'medium' }}</p>
+        <p>{{ st.updatedAt | date:'medium' }}</p>
       </div>
     </div>
 
@@ -307,17 +300,17 @@
       <label>Assign to agent</label>
       <div class="assign-row">
         <select class="agent-select wide"
-          [ngModel]="selectedAgent[selectedTicket.id]"
-          (ngModelChange)="assignTicket(selectedTicket.id, $event)"
-          [disabled]="assigningId === selectedTicket.id">
+          [ngModel]="selectedAgentIdFor(st.id)"
+          (ngModelChange)="assignTicket(st.id, $event)"
+          [disabled]="assigningId() === st.id">
           <option value="">Select agent…</option>
-          <option *ngFor="let a of agents" [value]="a.id">{{ a.fullName }}</option>
+          <option *ngFor="let a of agents()" [value]="a.id">{{ a.fullName }}</option>
         </select>
-        <span *ngIf="assigningId === selectedTicket.id" class="btn-spinner-sm-dark" style="flex-shrink:0"></span>
+        <span *ngIf="assigningId() === st.id" class="btn-spinner-sm-dark" style="flex-shrink:0"></span>
       </div>
     </div>
 
-    <div class="detail-block conversation-block" *ngIf="selectedTicket as st">
+    <div class="detail-block conversation-block">
       <label><i class="fas fa-comments"></i> Conversation</label>
       <div class="ticket-thread">
         <div *ngIf="sortedMessages(st).length === 0" class="thread-empty">
@@ -339,15 +332,17 @@
           </button>
         </div>
       </div>
-      <div class="reply-hint" *ngIf="replyToMessageId">
+      <div class="reply-hint" *ngIf="replyToMessageId()">
         Replying — <button type="button" class="link-btn" (click)="setReplyTo(null)">Cancel</button>
       </div>
-      <textarea class="admin-notes-input" rows="3" [(ngModel)]="messageDraft"
+      <textarea class="admin-notes-input" rows="3"
+        [value]="messageDraft()"
+        (input)="messageDraft.set($any($event.target).value)"
         placeholder="Add an admin note (visible to agent and customer in thread)…"></textarea>
       <div style="margin-top:10px">
-        <button type="button" class="btn btn-primary" [disabled]="postingMessage" (click)="sendAdminMessage()">
-          <span *ngIf="!postingMessage"><i class="fas fa-paper-plane"></i> Send</span>
-          <span *ngIf="postingMessage"><span class="btn-spinner-sm"></span> Sending…</span>
+        <button type="button" class="btn btn-primary" [disabled]="postingMessage()" (click)="sendAdminMessage()">
+          <span *ngIf="!postingMessage()"><i class="fas fa-paper-plane"></i> Send</span>
+          <span *ngIf="postingMessage()"><span class="btn-spinner-sm"></span> Sending…</span>
         </button>
       </div>
     </div>
@@ -355,11 +350,12 @@
     <div class="modal-actions">
       <button type="button" class="btn btn-secondary" (click)="closeTicketDetail()">Close</button>
     </div>
+    </ng-container>
   </div>
 </div>
 
 <!-- ═══════════════ CONFIRM DEACTIVATE ════════════════════ -->
-<div class="modal-backdrop" *ngIf="confirmDeactivateUserId" (click)="cancelDeactivateConfirm()">
+<div class="modal-backdrop" *ngIf="confirmDeactivateUserId()" (click)="cancelDeactivateConfirm()">
   <div class="modal" (click)="$event.stopPropagation()">
     <h3><i class="fas fa-user-slash"></i> Deactivate user</h3>
     <p class="modal-confirm-text">This user will not be able to sign in until reactivated. Continue?</p>
@@ -371,7 +367,7 @@
 </div>
 
 <!-- ═══════════════ CONFIRM PERMANENT DELETE ════════════════════ -->
-<div class="modal-backdrop" *ngIf="confirmDeleteUserId" (click)="cancelDeleteConfirm()">
+<div class="modal-backdrop" *ngIf="confirmDeleteUserId()" (click)="cancelDeleteConfirm()">
   <div class="modal" (click)="$event.stopPropagation()">
     <h3><i class="fas fa-triangle-exclamation"></i> Permanently delete user</h3>
     <p class="modal-confirm-text">This removes the user from the database. This cannot be undone. Continue?</p>
@@ -383,38 +379,38 @@
 </div>
 
 <!-- ═══════════════ CREATE USER MODAL ════════════════════ -->
-<div class="modal-backdrop" *ngIf="showModal" (click)="showModal=false">
+<div class="modal-backdrop" *ngIf="showModal()" (click)="closeCreateModal()">
   <div class="modal" (click)="$event.stopPropagation()">
     <h3><i class="fas fa-user-plus"></i> Create New User</h3>
 
-    <div class="alert alert-error" *ngIf="modalError">
-      <i class="fas fa-exclamation-circle"></i> {{ modalError }}
+    <div class="alert alert-error" *ngIf="modalError()">
+      <i class="fas fa-exclamation-circle"></i> {{ modalError() }}
     </div>
 
     <div class="form-group">
       <label>Full Name</label>
-      <input type="text" [(ngModel)]="newUser.fullName" placeholder="Jane Smith">
+      <input type="text" [ngModel]="newUser().fullName" (ngModelChange)="patchNewUser('fullName', $event)" placeholder="Jane Smith">
     </div>
     <div class="form-group">
       <label>Email</label>
-      <input type="email" [(ngModel)]="newUser.email" placeholder="jane@example.com">
+      <input type="email" [ngModel]="newUser().email" (ngModelChange)="patchNewUser('email', $event)" placeholder="jane@example.com">
     </div>
     <div class="form-group">
       <label>Password</label>
-      <input type="password" [(ngModel)]="newUser.password" placeholder="Min. 6 characters">
+      <input type="password" [ngModel]="newUser().password" (ngModelChange)="patchNewUser('password', $event)" placeholder="Min. 6 characters">
     </div>
     <div class="form-group">
       <label>Role</label>
-      <select [(ngModel)]="newUser.role">
+      <select [ngModel]="newUser().role" (ngModelChange)="patchNewUser('role', +$event)">
         <option *ngFor="let r of roleOptions" [value]="r.value">{{ r.label }}</option>
       </select>
     </div>
 
     <div class="modal-actions">
-      <button class="btn btn-secondary" (click)="showModal=false">Cancel</button>
-      <button class="btn btn-primary" [disabled]="creatingUser" (click)="createUser()">
-        <span *ngIf="!creatingUser"><i class="fas fa-check"></i> Create</span>
-        <span *ngIf="creatingUser"><span class="btn-spinner"></span> Creating…</span>
+      <button type="button" class="btn btn-secondary" (click)="closeCreateModal()">Cancel</button>
+      <button type="button" class="btn btn-primary" [disabled]="creatingUser()" (click)="createUser()">
+        <span *ngIf="!creatingUser()"><i class="fas fa-check"></i> Create</span>
+        <span *ngIf="creatingUser()"><span class="btn-spinner"></span> Creating…</span>
       </button>
     </div>
   </div>
