@@ -13,6 +13,7 @@ import { TicketService } from '../../../core/services/ticket.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { LiveRefreshService } from '../../../core/services/live-refresh.service';
 import {
+  ReplyAssistSourceDto,
   TicketDto,
   TicketMessageDto,
   STATUS_LABELS,
@@ -39,6 +40,8 @@ export class AgentDashboardComponent implements OnInit {
   readonly messageDraft = signal('');
   readonly replyToMessageId = signal<string | null>(null);
   readonly postingMessage = signal(false);
+  readonly replyAssistLoading = signal(false);
+  readonly replyAssistSources = signal<ReplyAssistSourceDto[]>([]);
 
   readonly filtered = computed(() => {
     const list = this.tickets();
@@ -119,6 +122,7 @@ export class AgentDashboardComponent implements OnInit {
     this.selectedTicket.set({ ...t });
     this.messageDraft.set('');
     this.replyToMessageId.set(null);
+    this.replyAssistSources.set([]);
   }
 
   closeTicketDetail(): void {
@@ -126,6 +130,29 @@ export class AgentDashboardComponent implements OnInit {
     this.messageDraft.set('');
     this.replyToMessageId.set(null);
     this.postingMessage.set(false);
+    this.replyAssistSources.set([]);
+  }
+
+  suggestReply(): void {
+    const t = this.selectedTicket();
+    if (!t) return;
+    this.replyAssistLoading.set(true);
+    this.replyAssistSources.set([]);
+    this.ticketService
+      .getReplyAssist(t.id)
+      .pipe(finalize(() => this.replyAssistLoading.set(false)))
+      .subscribe({
+        next: res => {
+          this.messageDraft.set(res.draft);
+          this.replyAssistSources.set(res.sources ?? []);
+          this.updateMsg.set('Draft inserted — review before sending.');
+          setTimeout(() => this.updateMsg.set(''), 4000);
+        },
+        error: () => {
+          this.error.set('Could not load a suggested reply.');
+          setTimeout(() => this.error.set(''), 5000);
+        }
+      });
   }
 
   setReplyTo(m: TicketMessageDto | null): void {

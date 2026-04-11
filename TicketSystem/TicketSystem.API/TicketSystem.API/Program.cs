@@ -15,6 +15,8 @@ builder.Services.AddSingleton(mongoSettings);
 
 // ── Services ──────────────────────────────────────────────────
 builder.Services.AddSingleton<AuthService>();
+builder.Services.AddSingleton<SmartRoutingService>();
+builder.Services.AddSingleton<KnowledgeBaseService>();
 builder.Services.AddSingleton<TicketService>();
 builder.Services.AddSingleton<AdminService>();
 builder.Services.AddSingleton<DataSeeder>();

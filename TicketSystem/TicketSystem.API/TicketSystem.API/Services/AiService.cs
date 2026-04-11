@@ -83,5 +83,104 @@ namespace TicketSystem.API.Services
                 return new AIClassifyResponse { Category = "UncategorizedIssue", Priority = "Medium" };
             }
         }
+
+        /// <summary>Drafts a suggested agent reply using ticket context + knowledge snippets.</summary>
+        public async Task<ReplyAssistResponseDto> DraftReplyAssistAsync(
+            string ticketTitle,
+            string ticketDescription,
+            string categoryName,
+            IReadOnlyList<(string Id, string Title, string Summary)> knowledgeSnippets)
+        {
+            var sources = knowledgeSnippets
+                .Select(k => new ReplyAssistSourceDto { ArticleId = k.Id, Title = k.Title })
+                .ToList();
+
+            if (knowledgeSnippets.Count == 0)
+            {
+                return new ReplyAssistResponseDto
+                {
+                    Draft =
+                        "Hello,\n\nThank you for contacting support. I've reviewed your request and will help you resolve this shortly. " +
+                        "If you have any additional details (screenshots, steps to reproduce, or account email), please reply here.\n\nBest regards,\nSupport",
+                    Sources = sources
+                };
+            }
+
+            var kbBlock = string.Join("\n\n", knowledgeSnippets.Select((k, i) =>
+                $"[{i + 1}] {k.Title}\n{k.Summary}"));
+
+            var systemPrompt = """
+                You are a professional customer support agent. Draft a concise, empathetic reply to the customer.
+                Use the knowledge base excerpts only as factual support; do not invent policy.
+                Output ONLY the email body text (no subject line, no JSON). Keep it under 400 words.
+                """;
+
+            var userPrompt = $"""
+                Ticket category: {categoryName}
+                Title: {ticketTitle}
+                Description: {ticketDescription}
+
+                Knowledge base:
+                {kbBlock}
+                """;
+
+            var requestBody = new
+            {
+                model = _model,
+                messages = new[]
+                {
+                    new { role = "system", content = systemPrompt },
+                    new { role = "user", content = userPrompt }
+                },
+                max_tokens = 600,
+                temperature = 0.35
+            };
+
+            var request = new HttpRequestMessage(HttpMethod.Post, $"{_endpoint}/chat/completions");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
+            request.Content = new StringContent(
+                JsonSerializer.Serialize(requestBody),
+                Encoding.UTF8,
+                "application/json");
+
+            try
+            {
+                var response = await _httpClient.SendAsync(request);
+                var responseBody = await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                    return FallbackDraft(ticketTitle, knowledgeSnippets, sources);
+
+                using var doc = JsonDocument.Parse(responseBody);
+                var content = doc.RootElement
+                    .GetProperty("choices")[0]
+                    .GetProperty("message")
+                    .GetProperty("content")
+                    .GetString()?
+                    .Trim() ?? "";
+
+                if (string.IsNullOrWhiteSpace(content))
+                    return FallbackDraft(ticketTitle, knowledgeSnippets, sources);
+
+                return new ReplyAssistResponseDto { Draft = content, Sources = sources };
+            }
+            catch
+            {
+                return FallbackDraft(ticketTitle, knowledgeSnippets, sources);
+            }
+        }
+
+        private static ReplyAssistResponseDto FallbackDraft(
+            string ticketTitle,
+            IReadOnlyList<(string Id, string Title, string Summary)> knowledgeSnippets,
+            List<ReplyAssistSourceDto> sources)
+        {
+            var first = knowledgeSnippets[0];
+            var draft =
+                $"Hello,\n\nThank you for reaching out about \"{ticketTitle}\".\n\n" +
+                $"Based on our knowledge base article \"{first.Title}\": {first.Summary}\n\n" +
+                "If this does not fully address your situation, please reply with any extra details and we'll continue assisting.\n\nBest regards,\nSupport";
+            return new ReplyAssistResponseDto { Draft = draft, Sources = sources };
+        }
     }
 }

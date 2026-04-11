@@ -26,5 +26,12 @@ namespace TicketSystem.API.Models
 
         [BsonElement("createdAt")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        /// <summary>
+        /// Ticket category enum names this agent handles (e.g. AuthenticationIssue).
+        /// Empty or null means the agent is a generalist and may receive any category when routing.
+        /// </summary>
+        [BsonElement("handledCategories")]
+        public List<string> HandledCategories { get; set; } = new();
     }
 }

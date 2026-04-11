@@ -14,11 +14,16 @@ namespace TicketSystem.API.Controllers
     {
         private readonly TicketService _ticketService;
         private readonly AIService _aiService;
+        private readonly KnowledgeBaseService _knowledgeBase;
 
-        public TicketController(TicketService ticketService, AIService aiService)
+        public TicketController(
+            TicketService ticketService,
+            AIService aiService,
+            KnowledgeBaseService knowledgeBase)
         {
             _ticketService = ticketService;
             _aiService = aiService;
+            _knowledgeBase = knowledgeBase;
         }
 
         // ── Customer: Create ticket (AI classifies automatically) ──
@@ -31,19 +36,26 @@ namespace TicketSystem.API.Controllers
 
             var ticket = await _ticketService.CreateAsync(req, userId, userName);
 
-            // AI Classification in background
+            // AI classification + smart routing (category-based agent assignment)
             _ = Task.Run(async () =>
             {
                 try
                 {
                     var classification = await _aiService.ClassifyTicketAsync(req.Description);
-                    if (Enum.TryParse<TicketCategory>(classification.Category, out var cat) &&
-                        Enum.TryParse<TicketPriority>(classification.Priority, out var pri))
-                    {
-                        await _ticketService.UpdateAIClassification(ticket.Id, cat, pri);
-                    }
+                    var cat = TicketCategory.UncategorizedIssue;
+                    var pri = TicketPriority.Medium;
+                    if (Enum.TryParse<TicketCategory>(classification.Category, out var c))
+                        cat = c;
+                    if (Enum.TryParse<TicketPriority>(classification.Priority, out var p))
+                        pri = p;
+
+                    await _ticketService.UpdateAIClassification(ticket.Id!, cat, pri);
+                    await _ticketService.TrySmartAssignAsync(ticket.Id!, cat);
                 }
-                catch { /* AI failure is non-critical */ }
+                catch
+                {
+                    /* AI / routing failure is non-critical */
+                }
             });
 
             return Ok(ticket);
@@ -78,6 +90,47 @@ namespace TicketSystem.API.Controllers
             var success = await _ticketService.UpdateStatusAsync(id, agentId, req.Status);
             if (!success) return NotFound(new { message = "Ticket not found or not assigned to you." });
             return Ok(new { message = "Status updated." });
+        }
+
+        // ── Agent: Reply assist (draft + knowledge sources) ───────
+        [HttpGet("{id}/reply-assist")]
+        [Authorize(Roles = "Agent")]
+        public async Task<IActionResult> GetReplyAssist(string id)
+        {
+            var agentId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
+            var (ok, err) = await _ticketService.ValidateReplyAssistAsync(id, agentId);
+            if (!ok && err == "not_found")
+                return NotFound(new { message = "Ticket not found." });
+            if (!ok && err == "unassigned")
+                return StatusCode(403, new { message = "Ticket is not assigned to an agent yet." });
+            if (!ok)
+                return StatusCode(403, new { message = "You can only use reply-assist on tickets assigned to you." });
+
+            var ticket = await _ticketService.GetByIdAsync(id);
+            if (ticket == null)
+                return NotFound(new { message = "Ticket not found." });
+
+            if (!Enum.TryParse<TicketCategory>(ticket.Category, out var category))
+                category = TicketCategory.UncategorizedIssue;
+
+            var articles = await _knowledgeBase.GetRelevantArticlesAsync(
+                category,
+                ticket.Title,
+                ticket.Description,
+                maxArticles: 5);
+
+            var snippets = articles
+                .Where(a => a.Id != null)
+                .Select(a => (a.Id!, a.Title, a.Summary))
+                .ToList();
+
+            var draft = await _aiService.DraftReplyAssistAsync(
+                ticket.Title,
+                ticket.Description,
+                ticket.Category,
+                snippets);
+
+            return Ok(draft);
         }
 
         // ── Agent: Save ticket notes ──────────────────────────────

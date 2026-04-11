@@ -160,6 +160,26 @@
   animation: spin 0.7s linear infinite;
 }
 
+.routing-cell {
+  max-width: 220px;
+  font-size: 12px;
+  vertical-align: top;
+}
+
+.routing-generalist {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.routing-chip {
+  display: inline-block;
+  margin: 2px 4px 2px 0;
+}
+
+.routing-na {
+  color: var(--text-muted);
+}
+
 .data-row {
   cursor: pointer;
   transition: background 0.12s ease;

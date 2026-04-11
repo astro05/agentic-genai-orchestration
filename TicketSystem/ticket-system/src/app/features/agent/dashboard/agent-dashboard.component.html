@@ -184,6 +184,15 @@
 
     <div class="detail-block conversation-block">
       <label><i class="fas fa-comments"></i> Conversation</label>
+      <div class="reply-assist-bar">
+        <button type="button" class="btn btn-secondary btn-sm"
+          [disabled]="replyAssistLoading()"
+          (click)="suggestReply()"
+          title="Draft a reply using the knowledge base">
+          <span *ngIf="!replyAssistLoading()"><i class="fas fa-wand-magic-sparkles"></i> Suggested reply</span>
+          <span *ngIf="replyAssistLoading()"><span class="btn-spinner-sm-dark"></span> Drafting…</span>
+        </button>
+      </div>
       <div class="ticket-thread">
         <div *ngIf="sortedMessages(st).length === 0" class="thread-empty">
           No messages yet. Add a reply below.
@@ -213,6 +222,12 @@
         [value]="messageDraft()"
         (input)="messageDraft.set($any($event.target).value)"
         placeholder="Write a note or reply…"></textarea>
+      <div class="reply-assist-sources" *ngIf="replyAssistSources().length">
+        <span class="sources-label"><i class="fas fa-book"></i> Knowledge base</span>
+        <ul class="source-list">
+          <li *ngFor="let s of replyAssistSources()">{{ s.title }}</li>
+        </ul>
+      </div>
       <div class="notes-actions-container">
         <div class="notes-actions" style="display: inline-block; margin-right: 16px;">
           <button type="button" class="btn btn-primary" [disabled]="postingMessage()" (click)="sendMessage()">

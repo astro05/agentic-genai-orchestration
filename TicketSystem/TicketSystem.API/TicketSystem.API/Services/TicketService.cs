@@ -10,13 +10,15 @@ namespace TicketSystem.API.Services
     {
         private readonly IMongoCollection<Ticket> _tickets;
         private readonly IMongoCollection<User> _users;
+        private readonly SmartRoutingService _smartRouting;
 
-        public TicketService(MongoDbSettings settings)
+        public TicketService(MongoDbSettings settings, SmartRoutingService smartRouting)
         {
             var client = new MongoClient(settings.ConnectionString);
             var database = client.GetDatabase(settings.DatabaseName);
             _tickets = database.GetCollection<Ticket>(settings.TicketsCollection);
             _users = database.GetCollection<User>(settings.UsersCollection);
+            _smartRouting = smartRouting;
         }
 
         // ── Customer: Create Ticket ──────────────────────────────
@@ -41,6 +43,52 @@ namespace TicketSystem.API.Services
                 .Set(t => t.Priority, priority)
                 .Set(t => t.UpdatedAt, DateTime.UtcNow);
             await _tickets.UpdateOneAsync(t => t.Id == ticketId, update);
+        }
+
+        /// <summary>
+        /// Assigns the best-matching agent by category load (smart routing). No-op if already assigned.
+        /// </summary>
+        public async Task<bool> TrySmartAssignAsync(string ticketId, TicketCategory category)
+        {
+            var ticket = await _tickets.Find(t => t.Id == ticketId).FirstOrDefaultAsync();
+            if (ticket == null || !string.IsNullOrEmpty(ticket.AssignedToId))
+                return false;
+
+            var agentId = await _smartRouting.FindBestAgentIdForCategoryAsync(category);
+            if (string.IsNullOrEmpty(agentId))
+                return false;
+
+            var agent = await _users.Find(u => u.Id == agentId && u.Role == UserRole.Agent && u.IsActive)
+                .FirstOrDefaultAsync();
+            if (agent == null)
+                return false;
+
+            var update = Builders<Ticket>.Update
+                .Set(t => t.AssignedToId, agentId)
+                .Set(t => t.AssignedToName, agent.FullName)
+                .Set(t => t.Status, TicketStatus.InProgress)
+                .Set(t => t.UpdatedAt, DateTime.UtcNow);
+
+            var result = await _tickets.UpdateOneAsync(
+                t => t.Id == ticketId && string.IsNullOrEmpty(t.AssignedToId),
+                update);
+            return result.ModifiedCount > 0;
+        }
+
+        public async Task<TicketDto?> GetByIdAsync(string ticketId)
+        {
+            var ticket = await _tickets.Find(t => t.Id == ticketId).FirstOrDefaultAsync();
+            return ticket == null ? null : MapToDto(ticket);
+        }
+
+        /// <summary>Reply-assist is only for the agent currently assigned to the ticket.</summary>
+        public async Task<(bool Ok, string Error)> ValidateReplyAssistAsync(string ticketId, string agentId)
+        {
+            var t = await _tickets.Find(x => x.Id == ticketId).FirstOrDefaultAsync();
+            if (t == null) return (false, "not_found");
+            if (string.IsNullOrEmpty(t.AssignedToId)) return (false, "unassigned");
+            if (t.AssignedToId != agentId) return (false, "forbidden");
+            return (true, string.Empty);
         }
 
         // ── Customer: Get own tickets ────────────────────────────

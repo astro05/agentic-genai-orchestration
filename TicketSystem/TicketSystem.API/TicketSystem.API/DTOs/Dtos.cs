@@ -35,6 +35,8 @@ namespace TicketSystem.API.DTOs
         public string Role { get; set; } = string.Empty;
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
+        /// <summary>Enum names of ticket categories this agent handles; empty for generalists.</summary>
+        public List<string> HandledCategories { get; set; } = new();
     }
 
     public class UpdateRoleRequest
@@ -107,5 +109,18 @@ namespace TicketSystem.API.DTOs
     {
         public string Category { get; set; } = string.Empty;
         public string Priority { get; set; } = string.Empty;
+    }
+
+    // ─── Reply assist ───────────────────────────────────────────
+    public class ReplyAssistSourceDto
+    {
+        public string ArticleId { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
+    }
+
+    public class ReplyAssistResponseDto
+    {
+        public string Draft { get; set; } = string.Empty;
+        public List<ReplyAssistSourceDto> Sources { get; set; } = new();
     }
 }

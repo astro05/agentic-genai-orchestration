@@ -177,6 +177,7 @@
             <th>Name</th>
             <th>Email</th>
             <th>Role</th>
+            <th>Queues (routing)</th>
             <th>Status</th>
             <th>Change Role</th>
             <th>Joined</th>
@@ -194,6 +195,13 @@
             <td class="email-cell">{{ u.email }}</td>
             <td>
               <span class="user-role-badge" [ngClass]="roleClass(u.role)">{{ u.role }}</span>
+            </td>
+            <td class="routing-cell">
+              <ng-container *ngIf="u.role === 'Agent'">
+                <span *ngIf="!(u.handledCategories?.length)" class="routing-generalist">Generalist · any category</span>
+                <span *ngFor="let c of u.handledCategories" class="category-chip routing-chip">{{ categoryLabel(c) }}</span>
+              </ng-container>
+              <span *ngIf="u.role !== 'Agent'" class="routing-na">—</span>
             </td>
             <td>
               <span class="badge" [class.badge-resolved]="u.isActive" [class.badge-high]="!u.isActive">

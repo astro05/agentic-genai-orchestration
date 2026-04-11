@@ -82,7 +82,8 @@ namespace TicketSystem.API.Services
             Email = u.Email,
             Role = u.Role.ToString(),
             IsActive = u.IsActive,
-            CreatedAt = u.CreatedAt
+            CreatedAt = u.CreatedAt,
+            HandledCategories = u.HandledCategories ?? new List<string>()
         };
     }
 }

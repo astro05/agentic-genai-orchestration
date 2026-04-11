@@ -5,6 +5,7 @@ import { environment } from '../../../environments/environment';
 import {
   AddTicketMessageRequest,
   CreateTicketRequest,
+  ReplyAssistResponseDto,
   TicketDto,
   TicketMessageDto,
   UpdateTicketNotesRequest,
@@ -41,5 +42,10 @@ export class TicketService {
 
   addTicketMessage(id: string, req: AddTicketMessageRequest): Observable<TicketMessageDto> {
     return this.http.post<TicketMessageDto>(`${this.apiUrl}/${id}/messages`, req);
+  }
+
+  /** AI + knowledge base suggested reply (agent, assigned ticket only). */
+  getReplyAssist(ticketId: string): Observable<ReplyAssistResponseDto> {
+    return this.http.get<ReplyAssistResponseDto>(`${this.apiUrl}/${ticketId}/reply-assist`);
   }
 }

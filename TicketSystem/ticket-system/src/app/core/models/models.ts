@@ -68,6 +68,8 @@ export interface UserDto {
   role: string;
   isActive: boolean;
   createdAt: string;
+  /** Ticket category enum names; empty for generalist agents (smart routing). */
+  handledCategories?: string[];
 }
 
 export interface UpdateRoleRequest {
@@ -120,6 +122,16 @@ export interface TicketDto {
   messages?: TicketMessageDto[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ReplyAssistSourceDto {
+  articleId: string;
+  title: string;
+}
+
+export interface ReplyAssistResponseDto {
+  draft: string;
+  sources: ReplyAssistSourceDto[];
 }
 
 // ── Helper Maps ────────────────────────────────────────────────
