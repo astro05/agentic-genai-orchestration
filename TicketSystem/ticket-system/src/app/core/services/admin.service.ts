@@ -34,6 +34,14 @@ export class AdminService {
     return this.http.delete(`${this.apiUrl}/users/${id}`);
   }
 
+  activateUser(id: string): Observable<any> {
+    return this.http.put(`${this.apiUrl}/users/${id}/activate`, {});
+  }
+
+  permanentlyDeleteUser(id: string): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/users/${id}/permanent`);
+  }
+
   // Tickets
   getAllTickets(): Observable<TicketDto[]> {
     return this.http.get<TicketDto[]>(`${this.apiUrl}/tickets`);

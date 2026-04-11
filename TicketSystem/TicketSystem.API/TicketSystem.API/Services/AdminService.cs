@@ -39,7 +39,24 @@ namespace TicketSystem.API.Services
         {
             var update = Builders<User>.Update.Set(u => u.IsActive, false);
             var result = await _users.UpdateOneAsync(u => u.Id == userId, update);
-            return result.ModifiedCount > 0;
+            return result.MatchedCount > 0;
+        }
+
+        public async Task<bool> ActivateUserAsync(string userId)
+        {
+            var update = Builders<User>.Update.Set(u => u.IsActive, true);
+            var result = await _users.UpdateOneAsync(u => u.Id == userId, update);
+            return result.MatchedCount > 0;
+        }
+
+        /// <summary>Permanently removes the user document. Cannot delete your own account.</summary>
+        public async Task<(bool success, string? error)> PermanentlyDeleteUserAsync(string userId, string? actingAdminId)
+        {
+            if (actingAdminId != null && userId == actingAdminId)
+                return (false, "cannot_delete_self");
+
+            var result = await _users.DeleteOneAsync(u => u.Id == userId);
+            return result.DeletedCount > 0 ? (true, null) : (false, "not_found");
         }
 
         public async Task<bool> CreateUserAsync(RegisterRequest req)

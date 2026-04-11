@@ -46,5 +46,8 @@ namespace TicketSystem.API.Models
 
         [BsonElement("resolvedAt")]
         public DateTime? ResolvedAt { get; set; }
+
+        [BsonElement("agentNotes")]
+        public string AgentNotes { get; set; } = string.Empty;
     }
 }

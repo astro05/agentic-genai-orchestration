@@ -85,6 +85,10 @@ export interface UpdateTicketStatusRequest {
   status: number; // 0=Open, 1=InProgress, 2=Resolved
 }
 
+export interface UpdateTicketNotesRequest {
+  notes: string;
+}
+
 export interface AssignTicketRequest {
   agentId: string;
 }
@@ -98,6 +102,7 @@ export interface TicketDto {
   category: string;
   createdByName: string;
   assignedToName?: string;
+  agentNotes?: string;
   createdAt: string;
   updatedAt: string;
 }

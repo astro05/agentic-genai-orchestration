@@ -79,5 +79,20 @@ namespace TicketSystem.API.Controllers
             if (!success) return NotFound(new { message = "Ticket not found or not assigned to you." });
             return Ok(new { message = "Status updated." });
         }
+
+        // ── Agent: Save ticket notes ──────────────────────────────
+        [HttpPut("{id}/notes")]
+        [Authorize(Roles = "Agent")]
+        public async Task<IActionResult> UpdateNotes(string id, [FromBody] UpdateTicketNotesRequest req)
+        {
+            var agentId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
+            var notes = req.Notes?.Trim() ?? string.Empty;
+            if (notes.Length > 8000)
+                return BadRequest(new { message = "Notes must be 8000 characters or less." });
+
+            var success = await _ticketService.UpdateAgentNotesAsync(id, agentId, notes);
+            if (!success) return NotFound(new { message = "Ticket not found or not assigned to you." });
+            return Ok(new { message = "Notes saved." });
+        }
     }
 }

@@ -1,5 +1,6 @@
 import { Component, DestroyRef, inject, OnInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { finalize } from 'rxjs/operators';
 import { AdminService }  from '../../../core/services/admin.service';
 import { AuthService }   from '../../../core/services/auth.service';
 import { LiveRefreshService } from '../../../core/services/live-refresh.service';
@@ -26,13 +27,14 @@ export class AdminDashboardComponent implements OnInit {
   assigningId    = '';
   selectedAgent: Record<string, string> = {};
   ticketMsg = '';
+  selectedTicket: TicketDto | null = null;
 
   // ── Users ────────────────────────────────────────────────────
   users:         UserDto[] = [];
   filteredUsers: UserDto[] = [];
   userSearch    = '';
   loadingUsers  = true;
-  deletingId    = '';
+  userActionBusyId = '';
   userMsg       = '';
 
   // ── New user modal ───────────────────────────────────────────
@@ -72,9 +74,18 @@ export class AdminDashboardComponent implements OnInit {
   // ── Tickets ──────────────────────────────────────────────────
   loadTickets(silent = false): void {
     if (!silent) this.loadingTickets = true;
-    this.adminService.getAllTickets().subscribe({
-      next:  t  => { this.tickets = t; this.applyTicketFilter(); this.loadingTickets = false; },
-      error: () => this.loadingTickets = false
+    this.adminService.getAllTickets().pipe(
+      finalize(() => { this.loadingTickets = false; })
+    ).subscribe({
+      next: t => {
+        this.tickets = t;
+        this.applyTicketFilter();
+        if (this.selectedTicket) {
+          const cur = t.find(x => x.id === this.selectedTicket!.id);
+          if (cur) this.selectedTicket = { ...cur };
+        }
+      },
+      error: () => { /* spinner cleared in finalize */ }
     });
   }
 
@@ -101,27 +112,53 @@ export class AdminDashboardComponent implements OnInit {
 
   setTicketFilter(f: string): void { this.ticketFilter = f; this.applyTicketFilter(); }
 
+  openTicketDetail(t: TicketDto): void {
+    this.selectedTicket = { ...t };
+    const match = this.agents.find(a => a.fullName === t.assignedToName);
+    this.selectedAgent[t.id] = match?.id ?? this.selectedAgent[t.id] ?? '';
+  }
+
+  closeTicketDetail(): void {
+    this.selectedTicket = null;
+  }
+
   assignTicket(ticketId: string): void {
     const agentId = this.selectedAgent[ticketId];
     if (!agentId) return;
+    const agent = this.agents.find(a => a.id === agentId);
+    const agentName = agent?.fullName ?? 'agent';
     this.assigningId = ticketId;
-    this.adminService.assignTicket(ticketId, { agentId }).subscribe({
+    this.adminService.assignTicket(ticketId, { agentId }).pipe(
+      finalize(() => { this.assigningId = ''; })
+    ).subscribe({
       next: () => {
-        this.assigningId = '';
-        this.ticketMsg = 'Ticket assigned successfully.';
+        this.ticketMsg = `Ticket successfully assigned to ${agentName}.`;
         this.loadTickets(true);
-        setTimeout(() => this.ticketMsg = '', 3000);
+        this.loadAgents();
+        if (this.selectedTicket?.id === ticketId) {
+          this.selectedTicket = {
+            ...this.selectedTicket,
+            assignedToName: agentName,
+            status: 'InProgress'
+          };
+        }
+        setTimeout(() => this.ticketMsg = '', 5000);
       },
-      error: () => { this.assigningId = ''; }
+      error: () => {
+        this.ticketMsg = 'Assignment failed. Please try another agent or refresh the list.';
+        setTimeout(() => this.ticketMsg = '', 5000);
+      }
     });
   }
 
   // ── Users ────────────────────────────────────────────────────
   loadUsers(silent = false): void {
     if (!silent) this.loadingUsers = true;
-    this.adminService.getAllUsers().subscribe({
-      next:  u  => { this.users = u; this.applyUserFilter(); this.loadingUsers = false; },
-      error: () => this.loadingUsers = false
+    this.adminService.getAllUsers().pipe(
+      finalize(() => { this.loadingUsers = false; })
+    ).subscribe({
+      next: u => { this.users = u; this.applyUserFilter(); },
+      error: () => { }
     });
   }
 
@@ -139,22 +176,54 @@ export class AdminDashboardComponent implements OnInit {
       next: () => {
         this.userMsg = 'Role updated.';
         this.loadUsers(true);
+        this.loadAgents();
         setTimeout(() => this.userMsg = '', 2500);
-      }
+      },
+      error: () => { this.userMsg = 'Could not update role.'; setTimeout(() => this.userMsg = '', 3000); }
     });
   }
 
-  deleteUser(id: string): void {
-    if (!confirm('Deactivate this user?')) return;
-    this.deletingId = id;
-    this.adminService.deleteUser(id).subscribe({
+  deactivateUser(id: string): void {
+    if (!confirm('Deactivate this user? They will not be able to sign in until reactivated.')) return;
+    this.userActionBusyId = id;
+    this.adminService.deleteUser(id).pipe(finalize(() => { this.userActionBusyId = ''; })).subscribe({
       next: () => {
-        this.deletingId = '';
         this.userMsg = 'User deactivated.';
         this.loadUsers(true);
+        this.loadAgents();
         setTimeout(() => this.userMsg = '', 2500);
       },
-      error: () => this.deletingId = ''
+      error: () => { this.userMsg = 'Could not deactivate user.'; setTimeout(() => this.userMsg = '', 3000); }
+    });
+  }
+
+  activateUser(id: string): void {
+    this.userActionBusyId = id;
+    this.adminService.activateUser(id).pipe(finalize(() => { this.userActionBusyId = ''; })).subscribe({
+      next: () => {
+        this.userMsg = 'User activated.';
+        this.loadUsers(true);
+        this.loadAgents();
+        setTimeout(() => this.userMsg = '', 2500);
+      },
+      error: () => { this.userMsg = 'Could not activate user.'; setTimeout(() => this.userMsg = '', 3000); }
+    });
+  }
+
+  permanentlyDeleteUser(id: string): void {
+    if (!confirm('Permanently delete this user from the database? This cannot be undone.')) return;
+    this.userActionBusyId = id;
+    this.adminService.permanentlyDeleteUser(id).pipe(finalize(() => { this.userActionBusyId = ''; })).subscribe({
+      next: () => {
+        this.userMsg = 'User permanently deleted.';
+        this.loadUsers(true);
+        this.loadAgents();
+        setTimeout(() => this.userMsg = '', 2500);
+      },
+      error: (err) => {
+        this.userMsg = err.error?.message ?? 'Could not delete user.';
+        setTimeout(() => this.userMsg = '', 4000);
+      }
     });
   }
 

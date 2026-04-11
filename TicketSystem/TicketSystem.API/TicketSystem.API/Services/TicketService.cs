@@ -75,6 +75,19 @@ namespace TicketSystem.API.Services
             return true;
         }
 
+        // ── Agent: Update internal notes ─────────────────────────
+        public async Task<bool> UpdateAgentNotesAsync(string ticketId, string agentId, string notes)
+        {
+            var ticket = await _tickets.Find(t => t.Id == ticketId && t.AssignedToId == agentId).FirstOrDefaultAsync();
+            if (ticket == null) return false;
+
+            var update = Builders<Ticket>.Update
+                .Set(t => t.AgentNotes, notes)
+                .Set(t => t.UpdatedAt, DateTime.UtcNow);
+            await _tickets.UpdateOneAsync(t => t.Id == ticketId, update);
+            return true;
+        }
+
         // ── Admin: Get all tickets ───────────────────────────────
         public async Task<List<TicketDto>> GetAllAsync()
         {
@@ -96,7 +109,7 @@ namespace TicketSystem.API.Services
                 .Set(t => t.UpdatedAt, DateTime.UtcNow);
 
             var result = await _tickets.UpdateOneAsync(t => t.Id == ticketId, update);
-            return result.ModifiedCount > 0;
+            return result.MatchedCount > 0;
         }
 
         private static TicketDto MapToDto(Ticket t) => new()
@@ -109,6 +122,7 @@ namespace TicketSystem.API.Services
             Category = t.Category.ToString(),
             CreatedByName = t.CreatedByName,
             AssignedToName = t.AssignedToName,
+            AgentNotes = t.AgentNotes ?? string.Empty,
             CreatedAt = t.CreatedAt,
             UpdatedAt = t.UpdatedAt
         };

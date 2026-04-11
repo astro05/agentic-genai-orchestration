@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   CreateTicketRequest, TicketDto,
+  UpdateTicketNotesRequest,
   UpdateTicketStatusRequest
 } from '../models/models';
 
@@ -29,5 +30,9 @@ export class TicketService {
 
   updateStatus(id: string, req: UpdateTicketStatusRequest): Observable<any> {
     return this.http.put(`${this.apiUrl}/${id}/status`, req);
+  }
+
+  updateAgentNotes(id: string, req: UpdateTicketNotesRequest): Observable<any> {
+    return this.http.put(`${this.apiUrl}/${id}/notes`, req);
   }
 }

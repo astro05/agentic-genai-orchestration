@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TicketSystem.API.DTOs;
 using TicketSystem.API.Services;
@@ -47,13 +48,34 @@ namespace TicketSystem.API.Controllers
             return Ok(new { message = "Role updated." });
         }
 
-        // ── Delete (deactivate) user ─────────────────────────────
+        // ── Deactivate user (soft) ───────────────────────────────
         [HttpDelete("users/{id}")]
         public async Task<IActionResult> DeleteUser(string id)
         {
             var success = await _adminService.DeleteUserAsync(id);
             if (!success) return NotFound(new { message = "User not found." });
             return Ok(new { message = "User deactivated." });
+        }
+
+        // ── Activate user ────────────────────────────────────────
+        [HttpPut("users/{id}/activate")]
+        public async Task<IActionResult> ActivateUser(string id)
+        {
+            var success = await _adminService.ActivateUserAsync(id);
+            if (!success) return NotFound(new { message = "User not found." });
+            return Ok(new { message = "User activated." });
+        }
+
+        // ── Permanently delete user document ─────────────────────
+        [HttpDelete("users/{id}/permanent")]
+        public async Task<IActionResult> PermanentlyDeleteUser(string id)
+        {
+            var adminId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var (success, error) = await _adminService.PermanentlyDeleteUserAsync(id, adminId);
+            if (error == "cannot_delete_self")
+                return BadRequest(new { message = "You cannot delete your own account." });
+            if (!success) return NotFound(new { message = "User not found." });
+            return Ok(new { message = "User permanently deleted." });
         }
 
         // ── Get all tickets ──────────────────────────────────────

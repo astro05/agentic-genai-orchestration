@@ -5,7 +5,7 @@
       <h1>My Queue</h1>
       <p>Tickets assigned to you, {{ authService.currentUser?.fullName }}.</p>
     </div>
-    <button class="btn btn-secondary" (click)="load()">
+    <button type="button" class="btn btn-secondary" (click)="load(false)">
       <i class="fas fa-rotate"></i> Refresh
     </button>
   </div>
@@ -58,7 +58,7 @@
   <!-- Toolbar -->
   <div class="toolbar">
     <div class="tab-bar">
-      <button *ngFor="let f of filters" class="tab-btn"
+      <button type="button" *ngFor="let f of filters" class="tab-btn"
         [class.active]="filter === f" (click)="setFilter(f)">
         {{ f === 'InProgress' ? 'In Progress' : f }}
       </button>
@@ -87,6 +87,7 @@
 
   <!-- Table -->
   <div class="table-wrap" *ngIf="!loading && filtered.length > 0">
+    <p class="row-hint"><i class="fas fa-hand-pointer"></i> Click a row to view full details and add notes.</p>
     <table>
       <thead>
         <tr>
@@ -100,7 +101,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let t of filtered">
+        <tr *ngFor="let t of filtered" class="data-row" (click)="openTicketDetail(t)">
           <td>
             <div class="ticket-title-cell">{{ t.title }}</div>
             <div class="ticket-desc-cell">{{ t.description }}</div>
@@ -115,12 +116,12 @@
           <td><span class="badge" [ngClass]="priorityClass(t.priority)">{{ t.priority }}</span></td>
           <td><span class="badge" [ngClass]="badgeClass(t.status)">{{ STATUS_LABELS[t.status] }}</span></td>
           <td class="date-cell">{{ t.createdAt | date:'MMM d' }}</td>
-          <td>
+          <td (click)="$event.stopPropagation()">
             <div class="status-actions">
-              <button *ngFor="let s of statusOptions"
+              <button type="button" *ngFor="let s of statusOptions"
                 class="btn btn-sm"
-                [class.btn-primary]="t.status === s.label.replace(' ','')"
-                [class.btn-secondary]="t.status !== s.label.replace(' ','')"
+                [class.btn-primary]="t.status === (s.label === 'In Progress' ? 'InProgress' : s.label)"
+                [class.btn-secondary]="t.status !== (s.label === 'In Progress' ? 'InProgress' : s.label)"
                 [disabled]="updatingId === t.id"
                 (click)="updateStatus(t.id, s.value)">
                 {{ s.label }}
@@ -132,4 +133,68 @@
     </table>
   </div>
 
+</div>
+
+<!-- Ticket detail + notes -->
+<div class="modal-backdrop" *ngIf="selectedTicket" (click)="closeTicketDetail()">
+  <div class="modal modal-agent-ticket" (click)="$event.stopPropagation()">
+    <div class="modal-head">
+      <h3><i class="fas fa-ticket-alt"></i> Ticket</h3>
+      <button type="button" class="icon-close" (click)="closeTicketDetail()" aria-label="Close">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <div class="detail-block">
+      <label>Title</label>
+      <p class="detail-title">{{ selectedTicket.title }}</p>
+    </div>
+    <div class="detail-block">
+      <label>Description</label>
+      <p class="detail-desc">{{ selectedTicket.description }}</p>
+    </div>
+
+    <div class="detail-grid">
+      <div class="detail-block">
+        <label>Customer</label>
+        <p>{{ selectedTicket.createdByName }}</p>
+      </div>
+      <div class="detail-block">
+        <label>Category</label>
+        <p><span class="category-chip">{{ categoryLabel(selectedTicket.category) }}</span></p>
+      </div>
+      <div class="detail-block">
+        <label>Priority</label>
+        <p><span class="badge" [ngClass]="priorityClass(selectedTicket.priority)">{{ selectedTicket.priority }}</span></p>
+      </div>
+      <div class="detail-block">
+        <label>Status</label>
+        <p><span class="badge" [ngClass]="badgeClass(selectedTicket.status)">{{ STATUS_LABELS[selectedTicket.status] }}</span></p>
+      </div>
+      <div class="detail-block">
+        <label>Created</label>
+        <p>{{ selectedTicket.createdAt | date:'medium' }}</p>
+      </div>
+      <div class="detail-block">
+        <label>Last updated</label>
+        <p>{{ selectedTicket.updatedAt | date:'medium' }}</p>
+      </div>
+    </div>
+
+    <div class="detail-block notes-block">
+      <label><i class="fas fa-sticky-note"></i> Agent notes (saved to database)</label>
+      <textarea class="notes-input" rows="5" [(ngModel)]="noteDraft"
+        placeholder="Internal notes about this ticket…"></textarea>
+      <div class="notes-actions">
+        <button type="button" class="btn btn-primary" [disabled]="savingNotes" (click)="saveNotes()">
+          <span *ngIf="!savingNotes"><i class="fas fa-floppy-disk"></i> Save notes</span>
+          <span *ngIf="savingNotes"><span class="btn-spinner-sm"></span> Saving…</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" class="btn btn-secondary" (click)="closeTicketDetail()">Close</button>
+    </div>
+  </div>
 </div>

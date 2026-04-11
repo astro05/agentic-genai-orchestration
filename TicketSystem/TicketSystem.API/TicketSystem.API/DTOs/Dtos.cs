@@ -60,6 +60,11 @@ namespace TicketSystem.API.DTOs
         public string AgentId { get; set; } = string.Empty;
     }
 
+    public class UpdateTicketNotesRequest
+    {
+        public string Notes { get; set; } = string.Empty;
+    }
+
     public class TicketDto
     {
         public string Id { get; set; } = string.Empty;
@@ -70,6 +75,7 @@ namespace TicketSystem.API.DTOs
         public string Category { get; set; } = string.Empty;
         public string CreatedByName { get; set; } = string.Empty;
         public string? AssignedToName { get; set; }
+        public string AgentNotes { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
     }

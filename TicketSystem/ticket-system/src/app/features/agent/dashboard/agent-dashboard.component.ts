@@ -1,5 +1,6 @@
 import { Component, DestroyRef, inject, OnInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { finalize } from 'rxjs/operators';
 import { TicketService } from '../../../core/services/ticket.service';
 import { AuthService }   from '../../../core/services/auth.service';
 import { LiveRefreshService } from '../../../core/services/live-refresh.service';
@@ -20,6 +21,10 @@ export class AgentDashboardComponent implements OnInit {
   filter       = 'All';
   search       = '';
   updatingId   = '';
+
+  selectedTicket: TicketDto | null = null;
+  noteDraft = '';
+  savingNotes = false;
 
   readonly STATUS_LABELS   = STATUS_LABELS;
   readonly CATEGORY_LABELS = CATEGORY_LABELS;
@@ -45,9 +50,21 @@ export class AgentDashboardComponent implements OnInit {
 
   load(silent = false): void {
     if (!silent) this.loading = true;
-    this.ticketService.getAssignedTickets().subscribe({
-      next:  t  => { this.tickets = t; this.applyFilter(); this.loading = false; },
-      error: () => { this.error = 'Failed to load tickets.'; this.loading = false; }
+    this.ticketService.getAssignedTickets().pipe(
+      finalize(() => { this.loading = false; })
+    ).subscribe({
+      next: t => {
+        this.tickets = t;
+        this.applyFilter();
+        if (this.selectedTicket) {
+          const cur = t.find(x => x.id === this.selectedTicket!.id);
+          if (cur) {
+            this.selectedTicket = { ...cur };
+            this.noteDraft = cur.agentNotes ?? '';
+          }
+        }
+      },
+      error: () => { this.error = 'Failed to load tickets.'; }
     });
   }
 
@@ -67,6 +84,41 @@ export class AgentDashboardComponent implements OnInit {
   }
 
   setFilter(f: string): void { this.filter = f; this.applyFilter(); }
+
+  openTicketDetail(t: TicketDto): void {
+    this.selectedTicket = { ...t };
+    this.noteDraft = t.agentNotes ?? '';
+  }
+
+  closeTicketDetail(): void {
+    this.selectedTicket = null;
+    this.noteDraft = '';
+    this.savingNotes = false;
+  }
+
+  saveNotes(): void {
+    if (!this.selectedTicket) return;
+    const id = this.selectedTicket.id;
+    const notes = this.noteDraft;
+    this.savingNotes = true;
+    this.ticketService.updateAgentNotes(id, { notes }).pipe(
+      finalize(() => { this.savingNotes = false; })
+    ).subscribe({
+      next: () => {
+        this.updateMsg = 'Notes saved to ticket.';
+        this.tickets = this.tickets.map(x =>
+          x.id === id ? { ...x, agentNotes: notes } : x
+        );
+        this.selectedTicket = { ...this.selectedTicket!, agentNotes: notes };
+        this.applyFilter();
+        setTimeout(() => this.updateMsg = '', 3000);
+      },
+      error: () => {
+        this.error = 'Could not save notes.';
+        setTimeout(() => this.error = '', 4000);
+      }
+    });
+  }
 
   private statusValueToString(statusValue: number): string {
     const map: Record<number, string> = { 0: 'Open', 1: 'InProgress', 2: 'Resolved' };
