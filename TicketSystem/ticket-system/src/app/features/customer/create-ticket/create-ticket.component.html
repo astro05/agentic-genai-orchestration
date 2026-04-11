@@ -1,0 +1,76 @@
+<div class="page-content">
+  <div class="create-wrap">
+
+    <!-- Back link -->
+    <a routerLink="/customer" class="back-link">
+      <i class="fas fa-arrow-left"></i> Back to Dashboard
+    </a>
+
+    <!-- Success state -->
+    <div class="success-card" *ngIf="success">
+      <div class="success-icon"><i class="fas fa-check-circle"></i></div>
+      <h2>Ticket Submitted!</h2>
+      <p>Your ticket has been created and our AI is classifying it right now. You'll be redirected shortly…</p>
+      <div class="ai-badge">
+        <i class="fas fa-robot"></i>
+        AI classification in progress
+      </div>
+    </div>
+
+    <!-- Form -->
+    <div class="form-card" *ngIf="!success">
+      <div class="form-header">
+        <div class="form-icon"><i class="fas fa-ticket-alt"></i></div>
+        <div>
+          <h2>Submit a Support Ticket</h2>
+          <p>Describe your issue and our AI will automatically classify it.</p>
+        </div>
+      </div>
+
+      <div class="ai-info">
+        <i class="fas fa-robot"></i>
+        <span>AI will automatically detect <strong>category</strong> and <strong>priority</strong> from your description.</span>
+      </div>
+
+      <div class="alert alert-error" *ngIf="error">
+        <i class="fas fa-exclamation-circle"></i> {{ error }}
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="submit()">
+
+        <div class="form-group">
+          <label>Ticket Title <span class="required">*</span></label>
+          <input type="text" formControlName="title"
+            placeholder="e.g. Cannot log in to my account">
+          <span class="field-error" *ngIf="f['title'].invalid && f['title'].touched">
+            Title is required (min 5 characters).
+          </span>
+        </div>
+
+        <div class="form-group">
+          <label>
+            Description <span class="required">*</span>
+            <span class="char-count" [class.warn]="charCount < 20">{{ charCount }} chars</span>
+          </label>
+          <textarea formControlName="description" rows="6"
+            placeholder="Please describe your issue in detail. Include any error messages, steps to reproduce, and what you expected to happen. The more detail you provide, the better our AI can classify and prioritize your ticket."></textarea>
+          <span class="field-error" *ngIf="f['description'].invalid && f['description'].touched">
+            Description is required (min 20 characters).
+          </span>
+        </div>
+
+        <div class="form-actions">
+          <a routerLink="/customer" class="btn btn-secondary">
+            <i class="fas fa-times"></i> Cancel
+          </a>
+          <button type="submit" class="btn btn-primary" [disabled]="loading">
+            <span *ngIf="!loading"><i class="fas fa-paper-plane"></i> Submit Ticket</span>
+            <span *ngIf="loading"><span class="btn-spinner"></span> Submitting…</span>
+          </button>
+        </div>
+
+      </form>
+    </div>
+
+  </div>
+</div>

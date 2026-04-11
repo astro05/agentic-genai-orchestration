@@ -1,0 +1,132 @@
+<div class="page-content">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <h1>My Tickets</h1>
+      <p>Welcome back, {{ authService.currentUser?.fullName }}. Here are your support requests.</p>
+    </div>
+    <a routerLink="/customer/create-ticket" class="btn btn-primary">
+      <i class="fas fa-plus"></i> New Ticket
+    </a>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-tile">
+      <div class="stat-icon" style="background:rgba(47,129,247,0.1)">
+        <i class="fas fa-ticket-alt" style="color:var(--accent)"></i>
+      </div>
+      <div class="stat-info">
+        <span class="stat-value">{{ stats.total }}</span>
+        <span class="stat-label">Total Tickets</span>
+      </div>
+    </div>
+    <div class="stat-tile">
+      <div class="stat-icon" style="background:rgba(47,129,247,0.1)">
+        <i class="fas fa-circle-dot" style="color:var(--status-open)"></i>
+      </div>
+      <div class="stat-info">
+        <span class="stat-value">{{ stats.open }}</span>
+        <span class="stat-label">Open</span>
+      </div>
+    </div>
+    <div class="stat-tile">
+      <div class="stat-icon" style="background:rgba(210,153,34,0.1)">
+        <i class="fas fa-spinner" style="color:var(--warning)"></i>
+      </div>
+      <div class="stat-info">
+        <span class="stat-value">{{ stats.inProgress }}</span>
+        <span class="stat-label">In Progress</span>
+      </div>
+    </div>
+    <div class="stat-tile">
+      <div class="stat-icon" style="background:rgba(63,185,80,0.1)">
+        <i class="fas fa-circle-check" style="color:var(--success)"></i>
+      </div>
+      <div class="stat-info">
+        <span class="stat-value">{{ stats.resolved }}</span>
+        <span class="stat-label">Resolved</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="tab-bar">
+      <button *ngFor="let f of filters" class="tab-btn"
+        [class.active]="filter === f"
+        (click)="setFilter(f)">
+        {{ f === 'InProgress' ? 'In Progress' : f }}
+        <span class="tab-count" *ngIf="f !== 'All'">
+          {{ f === 'Open' ? stats.open : f === 'InProgress' ? stats.inProgress : stats.resolved }}
+        </span>
+      </button>
+    </div>
+    <div class="search-wrap">
+      <i class="fas fa-search"></i>
+      <input type="text" placeholder="Search tickets…"
+        [(ngModel)]="search" (input)="applyFilter()">
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div class="spinner-wrap" *ngIf="loading">
+    <div class="spinner"></div>
+  </div>
+
+  <!-- Error -->
+  <div class="alert alert-error" *ngIf="error && !loading">
+    <i class="fas fa-exclamation-circle"></i> {{ error }}
+    <button class="btn btn-sm btn-secondary" (click)="load()" style="margin-left:12px">Retry</button>
+  </div>
+
+  <!-- Empty -->
+  <div class="empty-state" *ngIf="!loading && !error && filtered.length === 0">
+    <i class="fas fa-inbox"></i>
+    <h3>No tickets found</h3>
+    <p *ngIf="filter === 'All' && !search">You haven't submitted any tickets yet.</p>
+    <p *ngIf="filter !== 'All' || search">Try a different filter or search term.</p>
+    <a routerLink="/customer/create-ticket" class="btn btn-primary" style="margin-top:16px;display:inline-flex">
+      <i class="fas fa-plus"></i> Create First Ticket
+    </a>
+  </div>
+
+  <!-- Ticket cards -->
+  <div class="ticket-grid" *ngIf="!loading && filtered.length > 0">
+    <div class="ticket-card" *ngFor="let t of filtered">
+      <div class="ticket-card-header">
+        <span class="badge" [ngClass]="badgeClass(t.status)">
+          <i class="fas fa-circle" style="font-size:6px"></i>
+          {{ STATUS_LABELS[t.status] }}
+        </span>
+        <span class="badge" [ngClass]="priorityClass(t.priority)">
+          {{ t.priority }}
+        </span>
+      </div>
+
+      <h3 class="ticket-title">{{ t.title }}</h3>
+      <p class="ticket-desc">{{ t.description }}</p>
+
+      <div class="ticket-meta">
+        <span class="meta-item">
+          <i class="fas fa-tag"></i>
+          {{ categoryLabel(t.category) }}
+        </span>
+        <span class="meta-item" *ngIf="t.assignedToName">
+          <i class="fas fa-headset"></i>
+          {{ t.assignedToName }}
+        </span>
+        <span class="meta-item" *ngIf="!t.assignedToName">
+          <i class="fas fa-clock"></i>
+          Awaiting assignment
+        </span>
+        <span class="meta-item meta-date">
+          <i class="fas fa-calendar"></i>
+          {{ t.createdAt | date:'MMM d, y' }}
+        </span>
+      </div>
+    </div>
+  </div>
+
+</div>

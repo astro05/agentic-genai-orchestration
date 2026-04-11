@@ -1,0 +1,275 @@
+<div class="page-content">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <h1>Admin Panel</h1>
+      <p>Manage tickets, users, and agent assignments.</p>
+    </div>
+  </div>
+
+  <!-- Stat tiles -->
+  <div class="stats-grid">
+    <div class="stat-tile">
+      <div class="stat-icon" style="background:rgba(47,129,247,0.1)">
+        <i class="fas fa-ticket-alt" style="color:var(--accent)"></i>
+      </div>
+      <div class="stat-info">
+        <span class="stat-value">{{ ticketStats.total }}</span>
+        <span class="stat-label">Total Tickets</span>
+      </div>
+    </div>
+    <div class="stat-tile">
+      <div class="stat-icon" style="background:rgba(47,129,247,0.1)">
+        <i class="fas fa-circle-dot" style="color:var(--status-open)"></i>
+      </div>
+      <div class="stat-info">
+        <span class="stat-value">{{ ticketStats.open }}</span>
+        <span class="stat-label">Open</span>
+      </div>
+    </div>
+    <div class="stat-tile">
+      <div class="stat-icon" style="background:rgba(210,153,34,0.1)">
+        <i class="fas fa-spinner" style="color:var(--warning)"></i>
+      </div>
+      <div class="stat-info">
+        <span class="stat-value">{{ ticketStats.inProgress }}</span>
+        <span class="stat-label">In Progress</span>
+      </div>
+    </div>
+    <div class="stat-tile">
+      <div class="stat-icon" style="background:rgba(63,185,80,0.1)">
+        <i class="fas fa-circle-check" style="color:var(--success)"></i>
+      </div>
+      <div class="stat-info">
+        <span class="stat-value">{{ ticketStats.resolved }}</span>
+        <span class="stat-label">Resolved</span>
+      </div>
+    </div>
+    <div class="stat-tile">
+      <div class="stat-icon" style="background:rgba(248,81,73,0.1)">
+        <i class="fas fa-triangle-exclamation" style="color:var(--danger)"></i>
+      </div>
+      <div class="stat-info">
+        <span class="stat-value">{{ ticketStats.unassigned }}</span>
+        <span class="stat-label">Unassigned</span>
+      </div>
+    </div>
+    <div class="stat-tile">
+      <div class="stat-icon" style="background:rgba(47,129,247,0.1)">
+        <i class="fas fa-users" style="color:var(--accent)"></i>
+      </div>
+      <div class="stat-info">
+        <span class="stat-value">{{ users.length }}</span>
+        <span class="stat-label">Total Users</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tab-bar">
+    <button class="tab-btn" [class.active]="activeTab==='tickets'" (click)="activeTab='tickets'">
+      <i class="fas fa-ticket-alt"></i> Tickets
+    </button>
+    <button class="tab-btn" [class.active]="activeTab==='users'" (click)="activeTab='users'">
+      <i class="fas fa-users"></i> Users
+    </button>
+  </div>
+
+  <!-- ═══════════════ TICKETS TAB ══════════════════════════ -->
+  <div *ngIf="activeTab === 'tickets'">
+
+    <div class="alert alert-success" *ngIf="ticketMsg">
+      <i class="fas fa-check-circle"></i> {{ ticketMsg }}
+    </div>
+
+    <div class="toolbar">
+      <div class="tab-bar" style="margin-bottom:0">
+        <button *ngFor="let f of ticketFilters" class="tab-btn"
+          [class.active]="ticketFilter===f" (click)="setTicketFilter(f)">
+          {{ f === 'InProgress' ? 'In Progress' : f }}
+        </button>
+      </div>
+      <div class="search-wrap">
+        <i class="fas fa-search"></i>
+        <input type="text" placeholder="Search tickets…"
+          [(ngModel)]="ticketSearch" (input)="applyTicketFilter()">
+      </div>
+    </div>
+
+    <div class="spinner-wrap" *ngIf="loadingTickets"><div class="spinner"></div></div>
+
+    <div class="empty-state" *ngIf="!loadingTickets && filteredTickets.length===0">
+      <i class="fas fa-inbox"></i>
+      <h3>No tickets found</h3>
+      <p>No tickets match your current filter.</p>
+    </div>
+
+    <div class="table-wrap" *ngIf="!loadingTickets && filteredTickets.length > 0">
+      <table>
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Customer</th>
+            <th>Category</th>
+            <th>Priority</th>
+            <th>Status</th>
+            <th>Assigned To</th>
+            <th>Assign Agent</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let t of filteredTickets">
+            <td>
+              <div class="ticket-title-cell">{{ t.title }}</div>
+              <div class="ticket-desc-cell">{{ t.description }}</div>
+            </td>
+            <td>
+              <div class="customer-cell">
+                <div class="avatar-sm">{{ t.createdByName.charAt(0) }}</div>
+                {{ t.createdByName }}
+              </div>
+            </td>
+            <td><span class="category-chip">{{ categoryLabel(t.category) }}</span></td>
+            <td><span class="badge" [ngClass]="priorityClass(t.priority)">{{ t.priority }}</span></td>
+            <td><span class="badge" [ngClass]="badgeClass(t.status)">{{ STATUS_LABELS[t.status] }}</span></td>
+            <td>
+              <span *ngIf="t.assignedToName" class="assigned-name">
+                <i class="fas fa-headset"></i> {{ t.assignedToName }}
+              </span>
+              <span *ngIf="!t.assignedToName" class="unassigned-label">
+                <i class="fas fa-clock"></i> Unassigned
+              </span>
+            </td>
+            <td>
+              <div class="assign-row">
+                <select [(ngModel)]="selectedAgent[t.id]" class="agent-select">
+                  <option value="">Select agent…</option>
+                  <option *ngFor="let a of agents" [value]="a.id">{{ a.fullName }}</option>
+                </select>
+                <button class="btn btn-sm btn-primary"
+                  [disabled]="!selectedAgent[t.id] || assigningId === t.id"
+                  (click)="assignTicket(t.id)">
+                  <span *ngIf="assigningId !== t.id"><i class="fas fa-user-check"></i></span>
+                  <span *ngIf="assigningId === t.id"><span class="btn-spinner-sm"></span></span>
+                </button>
+              </div>
+            </td>
+            <td class="date-cell">{{ t.createdAt | date:'MMM d' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══════════════ USERS TAB ════════════════════════════ -->
+  <div *ngIf="activeTab === 'users'">
+
+    <div class="alert alert-success" *ngIf="userMsg">
+      <i class="fas fa-check-circle"></i> {{ userMsg }}
+    </div>
+
+    <div class="toolbar">
+      <div class="search-wrap">
+        <i class="fas fa-search"></i>
+        <input type="text" placeholder="Search users…"
+          [(ngModel)]="userSearch" (input)="applyUserFilter()">
+      </div>
+      <button class="btn btn-primary" (click)="openModal()">
+        <i class="fas fa-user-plus"></i> Create User
+      </button>
+    </div>
+
+    <div class="spinner-wrap" *ngIf="loadingUsers"><div class="spinner"></div></div>
+
+    <div class="table-wrap" *ngIf="!loadingUsers && filteredUsers.length > 0">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Change Role</th>
+            <th>Joined</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let u of filteredUsers">
+            <td>
+              <div class="customer-cell">
+                <div class="avatar-sm">{{ u.fullName.charAt(0) }}</div>
+                {{ u.fullName }}
+              </div>
+            </td>
+            <td class="email-cell">{{ u.email }}</td>
+            <td>
+              <span class="user-role-badge" [ngClass]="roleClass(u.role)">{{ u.role }}</span>
+            </td>
+            <td>
+              <span class="badge" [class.badge-resolved]="u.isActive" [class.badge-high]="!u.isActive">
+                {{ u.isActive ? 'Active' : 'Inactive' }}
+              </span>
+            </td>
+            <td>
+              <select class="role-select" [value]="u.role === 'Admin' ? 0 : u.role === 'Agent' ? 1 : 2"
+                (change)="updateRole(u.id, $event)">
+                <option *ngFor="let r of roleOptions" [value]="r.value">{{ r.label }}</option>
+              </select>
+            </td>
+            <td class="date-cell">{{ u.createdAt | date:'MMM d, y' }}</td>
+            <td>
+              <button class="btn btn-sm btn-danger"
+                [disabled]="!u.isActive || deletingId === u.id"
+                (click)="deleteUser(u.id)">
+                <i class="fas fa-user-slash"></i>
+                {{ u.isActive ? 'Deactivate' : 'Inactive' }}
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════ CREATE USER MODAL ════════════════════ -->
+<div class="modal-backdrop" *ngIf="showModal" (click)="showModal=false">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <h3><i class="fas fa-user-plus"></i> Create New User</h3>
+
+    <div class="alert alert-error" *ngIf="modalError">
+      <i class="fas fa-exclamation-circle"></i> {{ modalError }}
+    </div>
+
+    <div class="form-group">
+      <label>Full Name</label>
+      <input type="text" [(ngModel)]="newUser.fullName" placeholder="Jane Smith">
+    </div>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" [(ngModel)]="newUser.email" placeholder="jane@example.com">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" [(ngModel)]="newUser.password" placeholder="Min. 6 characters">
+    </div>
+    <div class="form-group">
+      <label>Role</label>
+      <select [(ngModel)]="newUser.role">
+        <option *ngFor="let r of roleOptions" [value]="r.value">{{ r.label }}</option>
+      </select>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-secondary" (click)="showModal=false">Cancel</button>
+      <button class="btn btn-primary" [disabled]="creatingUser" (click)="createUser()">
+        <span *ngIf="!creatingUser"><i class="fas fa-check"></i> Create</span>
+        <span *ngIf="creatingUser"><span class="btn-spinner"></span> Creating…</span>
+      </button>
+    </div>
+  </div>
+</div>

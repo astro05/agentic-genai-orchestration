@@ -1,0 +1,55 @@
+<nav class="navbar">
+  <div class="nav-inner">
+
+    <a [routerLink]="dashboardRoute" class="nav-brand">
+      <div class="brand-icon">
+        <i class="fas fa-ticket-alt"></i>
+      </div>
+      <span>TicketAI</span>
+    </a>
+
+    <div class="nav-links">
+      <!-- Customer links -->
+      <ng-container *ngIf="authService.isCustomer">
+        <a routerLink="/customer"               routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">
+          <i class="fas fa-home"></i> Dashboard
+        </a>
+        <a routerLink="/customer/create-ticket" routerLinkActive="active">
+          <i class="fas fa-plus-circle"></i> New Ticket
+        </a>
+      </ng-container>
+
+      <!-- Agent links -->
+      <ng-container *ngIf="authService.isAgent">
+        <a routerLink="/agent" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">
+          <i class="fas fa-headset"></i> My Queue
+        </a>
+      </ng-container>
+
+      <!-- Admin links -->
+      <ng-container *ngIf="authService.isAdmin">
+        <a routerLink="/admin" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">
+          <i class="fas fa-tachometer-alt"></i> Admin Panel
+        </a>
+      </ng-container>
+    </div>
+
+    <div class="nav-user">
+      <div class="user-info">
+        <div class="user-avatar">
+          {{ authService.currentUser?.fullName?.charAt(0) }}
+        </div>
+        <div class="user-meta">
+          <span class="user-name">{{ authService.currentUser?.fullName }}</span>
+          <span class="user-role role-{{ authService.currentUser?.role?.toLowerCase() }}">
+            {{ authService.currentUser?.role }}
+          </span>
+        </div>
+      </div>
+      <button class="logout-btn" (click)="authService.logout()" title="Logout">
+        <i class="fas fa-sign-out-alt"></i>
+      </button>
+    </div>
+
+  </div>
+</nav>

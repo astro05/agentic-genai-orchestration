@@ -1,0 +1,127 @@
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.search-wrap {
+  position: relative;
+  i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 13px; }
+  input { width: 260px; padding-left: 34px; padding-top: 8px; padding-bottom: 8px; }
+}
+
+.ticket-title-cell {
+  font-weight: 500;
+  font-size: 14px;
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ticket-desc-cell {
+  font-size: 12px;
+  color: var(--text-muted);
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+.customer-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.avatar-sm {
+  width: 28px; height: 28px;
+  background: var(--accent-dim);
+  border: 1px solid rgba(47,129,247,0.3);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.category-chip {
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 3px 8px;
+  white-space: nowrap;
+}
+
+.assigned-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--success);
+  i { font-size: 11px; }
+}
+
+.unassigned-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-muted);
+  i { font-size: 11px; }
+}
+
+.assign-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.agent-select {
+  width: 150px;
+  padding: 5px 10px;
+  font-size: 13px;
+  border-radius: var(--radius-sm);
+}
+
+.date-cell { white-space: nowrap; color: var(--text-muted); font-size: 13px; }
+.email-cell { font-size: 13px; color: var(--text-secondary); }
+
+.user-role-badge {
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 20px;
+  padding: 3px 10px;
+
+  &.role-admin    { background: rgba(248,81,73,0.15);  color: var(--danger);  }
+  &.role-agent    { background: rgba(210,153,34,0.15); color: var(--warning); }
+  &.role-customer { background: rgba(47,129,247,0.15); color: var(--accent);  }
+}
+
+.role-select {
+  width: 120px;
+  padding: 5px 10px;
+  font-size: 13px;
+  border-radius: var(--radius-sm);
+}
+
+/* ── Modal spinners ────────────────────────────────────────── */
+.btn-spinner, .btn-spinner-sm {
+  border-radius: 50%;
+  display: inline-block;
+  animation: spin 0.7s linear infinite;
+}
+
+.btn-spinner    { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; }
+.btn-spinner-sm { width: 12px; height: 12px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
