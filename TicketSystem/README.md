@@ -39,7 +39,62 @@ TicketAI automates the entire intake workflow:
 ## 🏗️ Architecture
 
 ```
-<img width="1440" height="1228" alt="image" src="https://github.com/user-attachments/assets/9a45d022-14fa-41e8-8757-99f1f293a940" />
+## 🏗️ Architecture
+
+```mermaid
+flowchart LR
+    subgraph Frontend["🎨 Frontend (Angular 18)"]
+        direction TB
+        A[Users<br/>Customer/Agent/Admin]
+        B[Auth Module]
+        C[Ticket Module]
+        D[Admin Module]
+    end
+
+    subgraph Backend["⚙️ Backend (.NET 10)"]
+        direction TB
+        E[Auth Controller<br/>JWT + bcrypt]
+        F[Ticket Controller<br/>CRUD + Assign]
+        G[Admin Controller<br/>Users + Roles]
+        H[AI Controller<br/>Classify]
+    end
+
+    subgraph Database["💾 Database"]
+        I[(MongoDB Atlas)]
+        J[users]
+        K[tickets]
+        L[sessions]
+    end
+
+    subgraph AI["🤖 AI Service"]
+        M[GitHub Models]
+        N[GPT-4o-mini]
+    end
+
+    subgraph Deployment["🚀 Deployment"]
+        O[MonsterASP.NET<br/>Frontend + Backend]
+        P[MongoDB Atlas Cloud]
+    end
+
+    %% Main flows
+    A --> B & C & D
+    B & C & D -->|JWT + HTTPS| E & F & G
+    E & F & G -->|CRUD| I
+    I --> J & K & L
+    F -.->|Classify Request| H
+    H --> M --> N
+    
+    %% Deployment connections
+    O -.-> Frontend
+    O -.-> Backend
+    P -.-> Database
+
+    %% Styling
+    style Frontend fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Backend fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style Database fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style AI fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
+    style Deployment fill:#fce4ec,stroke:#c2185b,stroke-width:2px
 
 ```
 
