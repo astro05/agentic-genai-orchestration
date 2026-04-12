@@ -11,7 +11,7 @@
 
 **A full-stack AI-powered customer support ticket management system with automatic ticket classification, smart agent routing, and threaded conversations.**
 
-[Features](#-features) • [Architecture](#-architecture) • [Tech Stack](#-technology-stack) • [Setup](#-setup--installation) • [API Docs](#-api-documentation) • [Testing](#-testing)
+[Features](#-features) • [Architecture](#architecture) • [Tech Stack](#technology-stack) • [Setup](#setup--installation) • [API Docs](#-api-documentation) • [Testing](#-testing)
 
 **[🌐 Live Demo](https://ticketai.netlify.app)** 
 
@@ -35,16 +35,12 @@ TicketAI automates the entire intake workflow:
 5. All parties communicate through a threaded conversation interface
 
 ---
-
-## 🏗️ Architecture
-
-```
+<a id="architecture"></a>
 ## 🏗️ Architecture
 
 ```mermaid
 flowchart LR
     subgraph Frontend["🎨 Frontend (Angular 18)"]
-        direction TB
         A[Users<br/>Customer/Agent/Admin]
         B[Auth Module]
         C[Ticket Module]
@@ -52,7 +48,6 @@ flowchart LR
     end
 
     subgraph Backend["⚙️ Backend (.NET 10)"]
-        direction TB
         E[Auth Controller<br/>JWT + bcrypt]
         F[Ticket Controller<br/>CRUD + Assign]
         G[Admin Controller<br/>Users + Roles]
@@ -71,32 +66,14 @@ flowchart LR
         N[GPT-4o-mini]
     end
 
-    subgraph Deployment["🚀 Deployment"]
-        O[MonsterASP.NET<br/>Frontend + Backend]
-        P[MongoDB Atlas Cloud]
-    end
-
-    %% Main flows
     A --> B & C & D
     B & C & D -->|JWT + HTTPS| E & F & G
     E & F & G -->|CRUD| I
     I --> J & K & L
     F -.->|Classify Request| H
     H --> M --> N
-    
-    %% Deployment connections
-    O -.-> Frontend
-    O -.-> Backend
-    P -.-> Database
-
-    %% Styling
-    style Frontend fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
-    style Backend fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
-    style Database fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-    style AI fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
-    style Deployment fill:#fce4ec,stroke:#c2185b,stroke-width:2px
-
 ```
+
 
 ### Component Breakdown
 
@@ -156,7 +133,7 @@ Three roles with strictly enforced permissions:
 - Sora (display) + DM Sans (body) Google Fonts
 
 ---
-
+<a id="technology-stack"></a>
 ## 🛠️ Technology Stack
 
 ### Frontend
@@ -341,7 +318,7 @@ TicketSystem/
 ```
 
 ---
-
+<a id="setup--installation"></a>
 ## ⚙️ Setup & Installation
 
 ### Prerequisites
