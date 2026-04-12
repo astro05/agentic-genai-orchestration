@@ -44,16 +44,33 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 
 // ── CORS ──────────────────────────────────────────────────────
+// Browsers send Origin without a trailing slash; WithOrigins must match exactly.
+static string[] NormalizeOrigins(params string[] origins) =>
+    origins
+        .Where(static o => !string.IsNullOrWhiteSpace(o))
+        .Select(static o => o.Trim().TrimEnd('/'))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToArray();
+
+var configuredOrigins = builder.Configuration["AllowedOrigins"]?
+    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+    ?? Array.Empty<string>();
+
+var corsOrigins = NormalizeOrigins(
+    configuredOrigins.Concat(new[]
+    {
+        "http://localhost:4200",
+        "http://localhost:5043",
+        "https://localhost:7234",
+        "https://ticketai.netlify.app"
+    }).ToArray());
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngular", policy =>
-        policy.WithOrigins(
-            "http://localhost:4200",  // Angular dev server
-            "http://localhost:5043",  // API http
-            "https://localhost:7234"  // API https
-        )
-        .AllowAnyHeader()
-        .AllowAnyMethod());
+        policy.WithOrigins(corsOrigins)
+            .AllowAnyHeader()
+            .AllowAnyMethod());
 });
 
 builder.Services.AddControllers();
