@@ -13,13 +13,15 @@
 
 [Features](#-features) • [Architecture](#-architecture) • [Tech Stack](#-technology-stack) • [Setup](#-setup--installation) • [API Docs](#-api-documentation) • [Testing](#-testing)
 
+**[🌐 Live Demo](https://ticketai.netlify.app)** 
+
 </div>
 
 ---
 
 ## 📖 Project Overview
 
-TicketAI is a production-ready customer support platform that leverages AI to eliminate manual ticket triage. When a customer submits a support ticket, GPT-4o-mini automatically classifies its **category** (e.g., Authentication Issue, Billing Issue) and **priority** (Low / Medium / High). A smart routing engine then assigns the ticket to the most suitable available agent based on their specialisation and current workload.
+TicketAI is a production-ready customer support platform that leverages AI to eliminate manual ticket triage. When a customer submits a support ticket, GPT-4o-mini automatically classifies its **category** (e.g., Authentication Issue, Billing Issue) and **priority** (Low / Medium / High). A smart routing engine then assigns the ticket to the most suitable available agent based on their specialisation and current workload. **Assisting** an agent in providing responses from a knowledge base.
 
 ### The Problem
 Support teams waste time manually reading, categorising, and routing tickets. Agents with different specialisations receive tickets outside their expertise, slowing resolution times and frustrating customers.
@@ -37,36 +39,8 @@ TicketAI automates the entire intake workflow:
 ## 🏗️ Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        CLIENT LAYER                         │
-│   Angular 21  (SPA + SSR)  ·  Font Awesome  ·  SCSS        │
-│   Auth Guard  ·  Role Guard  ·  JWT Interceptor             │
-└─────────────────────────┬───────────────────────────────────┘
-                          │ HTTP / REST (Bearer JWT)
-┌─────────────────────────▼───────────────────────────────────┐
-│                       API LAYER  (.NET 10)                  │
-│                                                             │
-│  ┌────────────┐  ┌────────────┐  ┌────────────────────┐    │
-│  │AuthController│  │TicketCtrl │  │  AdminController   │    │
-│  └──────┬─────┘  └─────┬──────┘  └─────────┬──────────┘    │
-│         │              │                    │               │
-│  ┌──────▼──────────────▼────────────────────▼──────────┐    │
-│  │              Service Layer                           │    │
-│  │  AuthService · TicketService · AdminService         │    │
-│  │  AIService · KnowledgeBaseService · SmartRouting    │    │
-│  └──────────────────────┬───────────────────────────────┘   │
-└─────────────────────────┼───────────────────────────────────┘
-                          │
-          ┌───────────────┼────────────────┐
-          │               │                │
-┌─────────▼──────┐ ┌──────▼──────┐ ┌──────▼──────────────┐
-│  MongoDB Atlas │ │GitHub Models│ │  Exception Middleware │
-│  (ticketdb)    │ │ gpt-4o-mini │ │  + JWT Middleware     │
-│                │ │             │ └─────────────────────-─┘
-│  users         │ │ /classify   │
-│  tickets       │ │ /reply-assist│
-│  knowledgeArticles│ └────────────┘
-└────────────────┘
+<img width="1440" height="1228" alt="image" src="https://github.com/user-attachments/assets/9a45d022-14fa-41e8-8757-99f1f293a940" />
+
 ```
 
 ### Component Breakdown
@@ -78,30 +52,8 @@ TicketAI automates the entire intake workflow:
 | **Database** | MongoDB Atlas | Persistent storage for users, tickets, knowledge |
 | **AI Classification** | GitHub Models (GPT-4o-mini) | Auto-classify ticket category + priority |
 | **AI Reply Assist** | GitHub Models (GPT-4o-mini) | Draft agent replies from knowledge base |
-| **Smart Router** | Custom .NET service | Load-balanced, category-aware agent assignment |
+| **Smart Router** | Custom .NET service | Category-aware agent assignment |
 | **Auth** | JWT + BCrypt | Stateless authentication, secure password storage |
-
-### Data Flow — Ticket Submission
-
-```
-Customer fills form
-       │
-       ▼
-POST /api/ticket  ──► TicketService.CreateAsync()
-       │                      │
-       │                      ▼
-       │              Ticket saved (Uncategorized/Medium)
-       │                      │
-       │              Background Task:
-       │               ├─ AIService.ClassifyTicketAsync()
-       │               │       ↕ GitHub Models API
-       │               ├─ UpdateAIClassification()
-       │               └─ SmartRoutingService.FindBestAgent()
-       │                       └─ Assign to specialist
-       │
-       ▼
-Customer dashboard shows ticket (updates on next refresh)
-```
 
 ---
 
@@ -180,6 +132,7 @@ Three roles with strictly enforced permissions:
 | MongoDB Atlas (Free Tier) | Cloud database |
 | GitHub Models | GPT-4o-mini API endpoint |
 | MonsterASP.NET | Deployment host |
+| Netlify.App | Deployment host |
 
 ---
 
@@ -187,66 +140,149 @@ Three roles with strictly enforced permissions:
 
 ```
 TicketSystem/
-├── ticket-system/                    # Angular Frontend
-│   ├── src/
-│   │   ├── app/
-│   │   │   ├── app.component.*       # Root shell (navbar + router-outlet)
-│   │   │   ├── app.module.ts         # NgModule declarations
-│   │   │   ├── app-routing.module.ts # Route guards + lazy paths
-│   │   │   ├── core/
-│   │   │   │   ├── guards/           # AuthGuard, RoleGuard
-│   │   │   │   ├── interceptors/     # JwtInterceptor
-│   │   │   │   ├── models/           # TypeScript interfaces + enums
-│   │   │   │   ├── services/         # AuthService, TicketService, AdminService, LiveRefreshService
-│   │   │   │   └── utils/            # HTTP error helpers
-│   │   │   ├── features/
-│   │   │   │   ├── auth/
-│   │   │   │   │   ├── login/        # Login form + deactivated popup
-│   │   │   │   │   └── register/     # Registration with role toggle
-│   │   │   │   ├── customer/
-│   │   │   │   │   ├── dashboard/    # Ticket card grid + detail modal
-│   │   │   │   │   └── create-ticket/ # Submission form
-│   │   │   │   ├── agent/
-│   │   │   │   │   └── dashboard/    # Queue table + conversation modal
-│   │   │   │   └── admin/
-│   │   │   │       └── dashboard/    # Tickets + users management
-│   │   │   └── shared/
-│   │   │       └── components/navbar/ # Role-aware navigation
-│   │   ├── environments/             # Dev + prod API URLs
-│   │   └── styles.scss               # Global design tokens + utilities
-│   ├── angular.json
-│   ├── package.json
-│   └── tsconfig.json
+├── README.md
 │
-└── TicketSystem.API/
-    └── TicketSystem.API/
-        ├── Controllers/
-        │   ├── AuthController.cs      # POST /register, POST /login
-        │   ├── TicketController.cs    # Ticket CRUD + AI endpoints
-        │   └── AdminController.cs     # User + ticket admin operations
-        ├── Services/
-        │   ├── AuthService.cs         # Registration, login, JWT generation
-        │   ├── TicketService.cs       # Core ticket business logic
-        │   ├── AdminService.cs        # User management
-        │   ├── AIService.cs           # GitHub Models integration
-        │   ├── KnowledgeBaseService.cs # Article retrieval + scoring
-        │   └── SmartRoutingService.cs  # Load-balanced agent assignment
-        ├── Models/
-        │   ├── User.cs
-        │   ├── Ticket.cs
-        │   ├── TicketMessage.cs
-        │   ├── KnowledgeArticle.cs
-        │   └── Enums.cs               # UserRole, TicketStatus, TicketPriority, TicketCategory
-        ├── DTOs/
-        │   └── Dtos.cs                # All request/response DTOs
-        ├── Data/
-        │   └── DataSeeder.cs          # Users, tickets, knowledge base seed
-        ├── Middleware/
-        │   └── ExceptionMiddleware.cs  # Global error handling
-        ├── Settings/
-        │   └── MongoDbSettings.cs
-        ├── Program.cs                  # DI, middleware, CORS, seeding
-        └── appsettings.json
+├── TicketSystem.API/
+│   └── TicketSystem.API/
+│       ├── TicketSystem.API.csproj
+│       ├── TicketSystem.API.slnx
+│       ├── appsettings.json
+│       ├── appsettings.Development.json
+│       ├── dotnet-tools.json
+│       ├── Program.cs
+│       │
+│       ├── Controllers/
+│       │   ├── AuthController.cs
+│       │   ├── AdminController.cs
+│       │   └── Ticketcontroller.cs
+│       │
+│       ├── Data/
+│       │   └── DataSeeder.cs
+│       │
+│       ├── DTOs/
+│       │   ├── AiDTOs.cs
+│       │   ├── AuthDTOs.cs
+│       │   ├── TicketDTOs.cs
+│       │   └── UserDTOs.cs
+│       │
+│       ├── Middleware/
+│       │   └── ExceptionMiddleware.cs
+│       │
+│       ├── Models/
+│       │   ├── Enums.cs
+│       │   ├── KnowledgeArticle.cs
+│       │   ├── Ticket.cs
+│       │   ├── TicketMessage.cs
+│       │   └── User.cs
+│       │
+│       ├── Properties/
+│       │   └── launchSettings.json
+│       │
+│       ├── Services/
+│       │   ├── AdminService.cs
+│       │   ├── AiService.cs
+│       │   ├── AuthService.cs
+│       │   ├── KnowledgeBaseService.cs
+│       │   ├── SmartRoutingService.cs
+│       │   └── TicketService.cs
+│       │
+│       └── Settings/
+│           └── Mongodbsettings.cs
+│
+└── ticket-system/                        # Angular Frontend
+    ├── angular.json
+    ├── package.json
+    ├── package-lock.json
+    ├── tsconfig.json
+    ├── tsconfig.app.json
+    ├── tsconfig.spec.json
+    ├── .editorconfig
+    ├── .gitignore
+    ├── .prettierrc
+    │
+    ├── .vscode/
+    │   ├── extensions.json
+    │   ├── launch.json
+    │   ├── mcp.json
+    │   └── tasks.json
+    │
+    ├── public/
+    │   ├── _redirects
+    │   └── web.config
+    │
+    └── src/
+        ├── index.html
+        ├── main.ts
+        ├── main.server.ts
+        ├── server.ts
+        ├── styles.scss
+        │
+        ├── app/
+        │   ├── app.component.html
+        │   ├── app.component.scss
+        │   ├── app.component.ts
+        │   ├── app.module.ts
+        │   ├── app.module.server.ts
+        │   ├── app.routes.server.ts
+        │   ├── app-routing.module.ts
+        │   ├── app.spec.ts
+        │   │
+        │   ├── core/
+        │   │   ├── guards/
+        │   │   │   ├── auth.guard.ts
+        │   │   │   └── role.guard.ts
+        │   │   ├── interceptors/
+        │   │   │   └── jwt.interceptor.ts
+        │   │   ├── models/
+        │   │   │   └── models.ts
+        │   │   ├── services/
+        │   │   │   ├── admin.service.ts
+        │   │   │   ├── auth.service.ts
+        │   │   │   ├── live-refresh.service.ts
+        │   │   │   └── ticket.service.ts
+        │   │   └── utils/
+        │   │       └── http-error.util.ts
+        │   │
+        │   ├── features/
+        │   │   ├── admin/
+        │   │   │   └── dashboard/
+        │   │   │       ├── admin-dashboard.component.html
+        │   │   │       ├── admin-dashboard.component.scss
+        │   │   │       └── admin-dashboard.component.ts
+        │   │   ├── agent/
+        │   │   │   └── dashboard/
+        │   │   │       ├── agent-dashboard.component.html
+        │   │   │       ├── agent-dashboard.component.scss
+        │   │   │       └── agent-dashboard.component.ts
+        │   │   ├── auth/
+        │   │   │   ├── login/
+        │   │   │   │   ├── login.component.html
+        │   │   │   │   ├── login.component.scss
+        │   │   │   │   └── login.component.ts
+        │   │   │   └── register/
+        │   │   │       ├── register.component.html
+        │   │   │       ├── register.component.scss
+        │   │   │       └── register.component.ts
+        │   │   └── customer/
+        │   │       ├── create-ticket/
+        │   │       │   ├── create-ticket.component.html
+        │   │       │   ├── create-ticket.component.scss
+        │   │       │   └── create-ticket.component.ts
+        │   │       └── dashboard/
+        │   │           ├── customer-dashboard.component.html
+        │   │           ├── customer-dashboard.component.scss
+        │   │           └── customer-dashboard.component.ts
+        │   │
+        │   └── shared/
+        │       └── components/
+        │           └── navbar/
+        │               ├── navbar.component.html
+        │               ├── navbar.component.scss
+        │               └── navbar.component.ts
+        │
+        └── environments/
+            ├── environment.ts
+            └── environment.prod.ts
 ```
 
 ---
@@ -262,15 +298,6 @@ TicketSystem/
 | .NET SDK | 10.0 | [dotnet.microsoft.com](https://dotnet.microsoft.com/download) |
 | MongoDB Atlas Account | Free | [cloud.mongodb.com](https://cloud.mongodb.com) |
 | GitHub Account (for Models API key) | — | [github.com](https://github.com) |
-
----
-
-### 1️⃣ Clone the Repository
-
-```bash
-git clone https://github.com/your-username/TicketSystem.git
-cd TicketSystem
-```
 
 ---
 
