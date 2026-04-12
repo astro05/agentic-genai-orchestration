@@ -8,12 +8,12 @@ using TicketSystem.API.Settings;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ── MongoDB Settings ──────────────────────────────────────────
+
 var mongoSettings = builder.Configuration.GetSection("MongoDbSettings").Get<MongoDbSettings>()
     ?? throw new Exception("MongoDbSettings not configured");
 builder.Services.AddSingleton(mongoSettings);
 
-// ── Services ──────────────────────────────────────────────────
+
 builder.Services.AddSingleton<AuthService>();
 builder.Services.AddSingleton<SmartRoutingService>();
 builder.Services.AddSingleton<KnowledgeBaseService>();
@@ -22,7 +22,7 @@ builder.Services.AddSingleton<AdminService>();
 builder.Services.AddSingleton<DataSeeder>();
 builder.Services.AddHttpClient<AIService>();
 
-// ── JWT Authentication ────────────────────────────────────────
+
 var jwtSecret = builder.Configuration["JwtSettings:Secret"]
     ?? throw new Exception("JWT secret not configured");
 
@@ -43,7 +43,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
-// ── CORS ──────────────────────────────────────────────────────
+
 // Browsers send Origin without a trailing slash; WithOrigins must match exactly.
 static string[] NormalizeOrigins(params string[] origins) =>
     origins
@@ -79,7 +79,7 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// ── Middleware Pipeline ───────────────────────────────────────
+
 app.UseMiddleware<ExceptionMiddleware>();
 
 if (app.Environment.IsDevelopment())
@@ -97,7 +97,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
-// ── Seed Data ─────────────────────────────────────────────────
+
 using (var scope = app.Services.CreateScope())
 {
     var seeder = scope.ServiceProvider.GetRequiredService<DataSeeder>();

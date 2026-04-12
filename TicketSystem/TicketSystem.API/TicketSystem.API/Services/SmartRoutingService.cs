@@ -22,7 +22,7 @@ public class SmartRoutingService
         _tickets = database.GetCollection<Ticket>(settings.TicketsCollection);
     }
 
-    /// <returns>Agent id, or null if no active agents exist.</returns>
+
     public async Task<string?> FindBestAgentIdForCategoryAsync(TicketCategory category)
     {
         var agents = await _users

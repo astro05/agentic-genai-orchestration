@@ -26,7 +26,6 @@ namespace TicketSystem.API.Controllers
             _knowledgeBase = knowledgeBase;
         }
 
-        // ── Customer: Create ticket (AI classifies automatically) ──
         [HttpPost]
         [Authorize(Roles = "Customer")]
         public async Task<IActionResult> CreateTicket([FromBody] CreateTicketRequest req)
@@ -54,14 +53,14 @@ namespace TicketSystem.API.Controllers
                 }
                 catch
                 {
-                    /* AI / routing failure is non-critical */
+                    
                 }
             });
 
             return Ok(ticket);
         }
 
-        // ── Customer: Get own tickets ────────────────────────────
+
         [HttpGet("my")]
         [Authorize(Roles = "Customer")]
         public async Task<IActionResult> GetMyTickets()
@@ -71,7 +70,7 @@ namespace TicketSystem.API.Controllers
             return Ok(tickets);
         }
 
-        // ── Agent: Get assigned tickets ──────────────────────────
+
         [HttpGet("assigned")]
         [Authorize(Roles = "Agent")]
         public async Task<IActionResult> GetAssignedTickets()
@@ -81,7 +80,7 @@ namespace TicketSystem.API.Controllers
             return Ok(tickets);
         }
 
-        // ── Agent: Update ticket status ──────────────────────────
+        // Agent: Update ticket status
         [HttpPut("{id}/status")]
         [Authorize(Roles = "Agent")]
         public async Task<IActionResult> UpdateStatus(string id, [FromBody] UpdateTicketStatusRequest req)
@@ -92,7 +91,7 @@ namespace TicketSystem.API.Controllers
             return Ok(new { message = "Status updated." });
         }
 
-        // ── Agent: Reply assist (draft + knowledge sources) ───────
+        // Agent: Reply assist (draft + knowledge sources)
         [HttpGet("{id}/reply-assist")]
         [Authorize(Roles = "Agent")]
         public async Task<IActionResult> GetReplyAssist(string id)
@@ -133,7 +132,8 @@ namespace TicketSystem.API.Controllers
             return Ok(draft);
         }
 
-        // ── Agent: Save ticket notes ──────────────────────────────
+
+        // Agent: Save ticket notes
         [HttpPut("{id}/notes")]
         [Authorize(Roles = "Agent")]
         public async Task<IActionResult> UpdateNotes(string id, [FromBody] UpdateTicketNotesRequest req)
@@ -148,7 +148,7 @@ namespace TicketSystem.API.Controllers
             return Ok(new { message = "Notes saved." });
         }
 
-        // ── Customer / Agent / Admin: Add conversation message ───
+        // Customer / Agent / Admin: Add conversation message
         [HttpPost("{id}/messages")]
         [Authorize(Roles = "Customer,Agent,Admin")]
         public async Task<IActionResult> AddMessage(string id, [FromBody] AddTicketMessageRequest req)

@@ -20,17 +20,14 @@ namespace TicketSystem.API.Controllers
             _ticketService = ticketService;
         }
 
-        // ── Get all users ────────────────────────────────────────
         [HttpGet("users")]
         public async Task<IActionResult> GetUsers() =>
             Ok(await _adminService.GetAllUsersAsync());
 
-        // ── Get all agents ───────────────────────────────────────
         [HttpGet("agents")]
         public async Task<IActionResult> GetAgents() =>
             Ok(await _adminService.GetAgentsAsync());
 
-        // ── Create user ──────────────────────────────────────────
         [HttpPost("users")]
         public async Task<IActionResult> CreateUser([FromBody] RegisterRequest req)
         {
@@ -39,7 +36,6 @@ namespace TicketSystem.API.Controllers
             return Ok(new { message = "User created." });
         }
 
-        // ── Update user role ─────────────────────────────────────
         [HttpPut("users/role")]
         public async Task<IActionResult> UpdateRole([FromBody] UpdateRoleRequest req)
         {
@@ -48,7 +44,6 @@ namespace TicketSystem.API.Controllers
             return Ok(new { message = "Role updated." });
         }
 
-        // ── Deactivate user (soft) ───────────────────────────────
         [HttpDelete("users/{id}")]
         public async Task<IActionResult> DeleteUser(string id)
         {
@@ -57,7 +52,6 @@ namespace TicketSystem.API.Controllers
             return Ok(new { message = "User deactivated." });
         }
 
-        // ── Activate user ────────────────────────────────────────
         [HttpPut("users/{id}/activate")]
         public async Task<IActionResult> ActivateUser(string id)
         {
@@ -66,7 +60,6 @@ namespace TicketSystem.API.Controllers
             return Ok(new { message = "User activated." });
         }
 
-        // ── Permanently delete user document ─────────────────────
         [HttpDelete("users/{id}/permanent")]
         public async Task<IActionResult> PermanentlyDeleteUser(string id)
         {
@@ -78,12 +71,10 @@ namespace TicketSystem.API.Controllers
             return Ok(new { message = "User permanently deleted." });
         }
 
-        // ── Get all tickets ──────────────────────────────────────
         [HttpGet("tickets")]
         public async Task<IActionResult> GetAllTickets() =>
             Ok(await _ticketService.GetAllAsync());
 
-        // ── Assign ticket to agent ───────────────────────────────
         [HttpPut("tickets/{ticketId}/assign")]
         public async Task<IActionResult> AssignTicket(string ticketId, [FromBody] AssignTicketRequest req)
         {

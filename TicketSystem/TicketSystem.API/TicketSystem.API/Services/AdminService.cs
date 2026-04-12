@@ -49,7 +49,9 @@ namespace TicketSystem.API.Services
             return result.MatchedCount > 0;
         }
 
-        /// <summary>Permanently removes the user document. Cannot delete your own account.</summary>
+        /// <summary>
+        /// Permanently removes the user document. Cannot delete your own account.
+        /// </summary>
         public async Task<(bool success, string? error)> PermanentlyDeleteUserAsync(string userId, string? actingAdminId)
         {
             if (actingAdminId != null && userId == actingAdminId)

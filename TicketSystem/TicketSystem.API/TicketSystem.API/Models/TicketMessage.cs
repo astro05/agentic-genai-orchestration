@@ -22,7 +22,7 @@ public class TicketMessage
     [BsonElement("createdAt")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    /// <summary>Optional id of another message on the same ticket this entry replies to.</summary>
+    //Optional id of another message on the same ticket this entry replies to.
     [BsonElement("replyToMessageId")]
     public string? ReplyToMessageId { get; set; }
 }

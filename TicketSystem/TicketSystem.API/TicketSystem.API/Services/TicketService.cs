@@ -21,7 +21,7 @@ namespace TicketSystem.API.Services
             _smartRouting = smartRouting;
         }
 
-        // ── Customer: Create Ticket ──────────────────────────────
+     
         public async Task<TicketDto> CreateAsync(CreateTicketRequest req, string customerId, string customerName)
         {
             var ticket = new Ticket
@@ -35,7 +35,7 @@ namespace TicketSystem.API.Services
             return MapToDto(ticket);
         }
 
-        // ── Update ticket category+priority after AI classification
+        
         public async Task UpdateAIClassification(string ticketId, TicketCategory category, TicketPriority priority)
         {
             var update = Builders<Ticket>.Update
@@ -81,7 +81,9 @@ namespace TicketSystem.API.Services
             return ticket == null ? null : MapToDto(ticket);
         }
 
-        /// <summary>Reply-assist is only for the agent currently assigned to the ticket.</summary>
+        /// <summary>
+        /// Reply-assist is only for the agent currently assigned to the ticket.
+        /// </summary>
         public async Task<(bool Ok, string Error)> ValidateReplyAssistAsync(string ticketId, string agentId)
         {
             var t = await _tickets.Find(x => x.Id == ticketId).FirstOrDefaultAsync();
@@ -91,7 +93,7 @@ namespace TicketSystem.API.Services
             return (true, string.Empty);
         }
 
-        // ── Customer: Get own tickets ────────────────────────────
+        
         public async Task<List<TicketDto>> GetByCustomerAsync(string customerId)
         {
             var tickets = await _tickets.Find(t => t.CreatedById == customerId)
@@ -99,7 +101,7 @@ namespace TicketSystem.API.Services
             return tickets.Select(MapToDto).ToList();
         }
 
-        // ── Agent: Get assigned tickets ──────────────────────────
+       
         public async Task<List<TicketDto>> GetByAgentAsync(string agentId)
         {
             var tickets = await _tickets.Find(t => t.AssignedToId == agentId)
@@ -107,7 +109,7 @@ namespace TicketSystem.API.Services
             return tickets.Select(MapToDto).ToList();
         }
 
-        // ── Agent: Update ticket status ──────────────────────────
+      
         public async Task<bool> UpdateStatusAsync(string ticketId, string agentId, TicketStatus status)
         {
             var ticket = await _tickets.Find(t => t.Id == ticketId && t.AssignedToId == agentId).FirstOrDefaultAsync();
@@ -124,7 +126,7 @@ namespace TicketSystem.API.Services
             return true;
         }
 
-        // ── Agent: Update internal notes ─────────────────────────
+       
         public async Task<bool> UpdateAgentNotesAsync(string ticketId, string agentId, string notes)
         {
             var ticket = await _tickets.Find(t => t.Id == ticketId && t.AssignedToId == agentId).FirstOrDefaultAsync();
@@ -137,7 +139,7 @@ namespace TicketSystem.API.Services
             return true;
         }
 
-        // ── Customer / Agent / Admin: Add threaded message ───────
+        
         public async Task<(TicketMessageDto? message, string? error)> AddMessageAsync(
             string ticketId,
             string userId,
@@ -198,7 +200,7 @@ namespace TicketSystem.API.Services
             return false;
         }
 
-        // ── Admin: Get all tickets ───────────────────────────────
+        
         public async Task<List<TicketDto>> GetAllAsync()
         {
             var tickets = await _tickets.Find(_ => true)
@@ -206,7 +208,7 @@ namespace TicketSystem.API.Services
             return tickets.Select(MapToDto).ToList();
         }
 
-        // ── Admin: Assign ticket to agent ────────────────────────
+     
         public async Task<bool> AssignAsync(string ticketId, string agentId)
         {
             var agent = await _users.Find(u => u.Id == agentId && u.Role == UserRole.Agent).FirstOrDefaultAsync();

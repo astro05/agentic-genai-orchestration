@@ -99,7 +99,7 @@ namespace TicketSystem.API.Data
                 admin, agentAuth, agentBilling, agentTech, agentGeneral, customer
             });
 
-            Console.WriteLine("✅ Users seeded (admin, 4 agents with routing profiles, customer).");
+            Console.WriteLine("Users seeded (admin, 4 agents with routing profiles, customer).");
         }
 
         private async Task SeedKnowledgeBaseIfEmptyAsync()
@@ -202,7 +202,7 @@ namespace TicketSystem.API.Data
             };
 
             await _knowledge.InsertManyAsync(articles);
-            Console.WriteLine($"✅ Knowledge base seeded ({articles.Count} articles).");
+            Console.WriteLine($"Knowledge base seeded ({articles.Count} articles).");
         }
 
         private async Task SeedSampleTicketsIfEmptyAsync()
@@ -260,7 +260,7 @@ namespace TicketSystem.API.Data
             };
 
             await _tickets.InsertManyAsync(tickets);
-            Console.WriteLine($"✅ Sample tickets seeded ({tickets.Length}).");
+            Console.WriteLine($"Sample tickets seeded ({tickets.Length}).");
             PrintLoginHints();
         }
 

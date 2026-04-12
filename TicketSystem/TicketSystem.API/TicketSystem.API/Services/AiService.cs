@@ -72,7 +72,7 @@ namespace TicketSystem.API.Services
                 var category = resultDoc.RootElement.GetProperty("category").GetString() ?? "UncategorizedIssue";
                 var priority = resultDoc.RootElement.GetProperty("priority").GetString() ?? "Medium";
 
-                // Validate enums
+                
                 if (!Enum.TryParse<TicketCategory>(category, true, out _)) category = "UncategorizedIssue";
                 if (!Enum.TryParse<TicketPriority>(priority, true, out _)) priority = "Medium";
 
@@ -84,7 +84,9 @@ namespace TicketSystem.API.Services
             }
         }
 
-        /// <summary>Drafts a suggested agent reply using ticket context + knowledge snippets.</summary>
+        /// <summary>
+        /// Drafts a suggested agent reply using ticket context + knowledge snippets.
+        /// </summary>
         public async Task<ReplyAssistResponseDto> DraftReplyAssistAsync(
             string ticketTitle,
             string ticketDescription,

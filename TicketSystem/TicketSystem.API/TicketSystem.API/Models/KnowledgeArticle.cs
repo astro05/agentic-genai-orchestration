@@ -19,7 +19,7 @@ public class KnowledgeArticle
     [BsonElement("body")]
     public string Body { get; set; } = string.Empty;
 
-    /// <summary>Primary category this article applies to.</summary>
+    //Primary category this article applies to.
     [BsonElement("category")]
     public TicketCategory Category { get; set; } = TicketCategory.GeneralInquiry;
 

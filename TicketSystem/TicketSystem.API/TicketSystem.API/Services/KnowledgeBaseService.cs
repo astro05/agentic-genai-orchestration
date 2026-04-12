@@ -15,7 +15,9 @@ public class KnowledgeBaseService
         _articles = database.GetCollection<KnowledgeArticle>(settings.KnowledgeBaseCollection);
     }
 
-    /// <summary>Top articles for a ticket: same category, general inquiry, plus keyword overlap.</summary>
+    /// <summary>
+    /// Top articles for a ticket: same category, general inquiry, plus keyword overlap.
+    /// </summary>
     public async Task<List<KnowledgeArticle>> GetRelevantArticlesAsync(
         TicketCategory ticketCategory,
         string title,

@@ -1,8 +1,8 @@
-/* ── Google Fonts ──────────────────────────────────────────── */
+/* Google Fonts */
 @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap');
 @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css');
 
-/* ── Design Tokens ─────────────────────────────────────────── */
+/* Design Tokens */
 :root {
   --bg-base:        #f5f7fa;
   --bg-surface:     #ffffff;
@@ -52,7 +52,7 @@
   --transition:  0.18s ease;
 }
 
-/* ── Reset ─────────────────────────────────────────────────── */
+/* Reset */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body {
@@ -75,7 +75,7 @@ h1, h2, h3, h4, h5 {
 a { color: var(--accent); text-decoration: none; }
 a:hover { color: var(--accent-hover); }
 
-/* ── Scrollbar ─────────────────────────────────────────────── */
+/* Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg-elevated); }
 ::-webkit-scrollbar-thumb { background: #c8cdd6; border-radius: 3px; }
@@ -102,7 +102,7 @@ a:hover { color: var(--accent-hover); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ── Cards ─────────────────────────────────────────────────── */
+/* Cards */
 .card {
   background: var(--bg-surface);
   border: 1px solid var(--border);
@@ -122,7 +122,7 @@ a:hover { color: var(--accent-hover); }
   h2, h3 { font-size: 1.1rem; }
 }
 
-/* ── Buttons ───────────────────────────────────────────────── */
+/* Buttons  */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -173,7 +173,7 @@ a:hover { color: var(--accent-hover); }
   border-radius: var(--radius-sm);
 }
 
-/* ── Form Controls ─────────────────────────────────────────── */
+/* Form Controls  */
 .form-group {
   display: flex;
   flex-direction: column;
@@ -225,7 +225,7 @@ textarea { resize: vertical; min-height: 100px; }
   color: var(--danger);
 }
 
-/* ── Badges ────────────────────────────────────────────────── */
+/* Badges  */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -245,7 +245,7 @@ textarea { resize: vertical; min-height: 100px; }
 .badge-medium { background: rgba(179,107,0,0.10);  color: var(--priority-medium); }
 .badge-high   { background: rgba(217,48,37,0.10);  color: var(--priority-high);   }
 
-/* ── Tables ────────────────────────────────────────────────── */
+/* Tables */
 .table-wrap {
   overflow-x: auto;
   border-radius: var(--radius-md);
@@ -284,7 +284,7 @@ tbody td {
   vertical-align: middle;
 }
 
-/* ── Stats Tiles ───────────────────────────────────────────── */
+/* Stats Tiles */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -317,7 +317,7 @@ tbody td {
 .stat-value { font-family: var(--font-display); font-size: 1.6rem; font-weight: 700; line-height: 1; }
 .stat-label { font-size: 12px; color: var(--text-secondary); margin-top: 3px; }
 
-/* ── Alerts ────────────────────────────────────────────────── */
+/*  Alerts */
 .alert {
   padding: 12px 16px;
   border-radius: var(--radius-md);
@@ -329,7 +329,7 @@ tbody td {
 .alert-success { background: rgba(26,150,69,0.07); color: #136134;  border-color: rgba(26,150,69,0.25); }
 .alert-info    { background: rgba(26,110,245,0.07); color: #1253b8; border-color: rgba(26,110,245,0.25); }
 
-/* ── Empty State ───────────────────────────────────────────── */
+/* Empty State */
 .empty-state {
   text-align: center;
   padding: 60px 20px;
@@ -340,7 +340,7 @@ tbody td {
   p  { font-size: 14px; }
 }
 
-/* ── Loading Spinner ───────────────────────────────────────── */
+/* Loading Spinner */
 .spinner-wrap {
   display: flex;
   align-items: center;
@@ -358,7 +358,7 @@ tbody td {
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ── Page Header ───────────────────────────────────────────── */
+/* Page Header */
 .page-header {
   display: flex;
   align-items: flex-start;
@@ -371,7 +371,7 @@ tbody td {
   p  { color: var(--text-secondary); font-size: 14px; margin-top: 4px; }
 }
 
-/* ── Tabs ──────────────────────────────────────────────────── */
+/* Tabs */
 .tab-bar {
   display: flex;
   gap: 4px;
@@ -403,7 +403,7 @@ tbody td {
   &:hover:not(.active) { color: var(--text-primary); }
 }
 
-/* ── Modal ─────────────────────────────────────────────────── */
+/* Modal */
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -461,7 +461,7 @@ tbody td {
   margin-top: 20px;
 }
 
-/* ── Ticket conversation thread ─────────────────────────────── */
+/* Ticket conversation thread */
 .ticket-thread {
   max-height: min(320px, 42vh);
   overflow-y: auto;
@@ -598,7 +598,7 @@ tbody td {
   }
 }
 
-/* ── Responsive ────────────────────────────────────────────── */
+/* Responsive  */
 @media (max-width: 768px) {
   .page-content { padding: 16px; }
   .page-header { flex-direction: column; }
