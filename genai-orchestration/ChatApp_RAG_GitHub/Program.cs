@@ -1,9 +1,9 @@
 using System.ClientModel;
 using Microsoft.Extensions.AI;
 using OpenAI;
-using ChatApp_RAG.Components;
-using ChatApp_RAG.Services;
-using ChatApp_RAG.Services.Ingestion;
+using ChatApp_RAG_GitHub.Components;
+using ChatApp_RAG_GitHub.Services;
+using ChatApp_RAG_GitHub.Services.Ingestion;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents().AddInteractiveServerComponents();

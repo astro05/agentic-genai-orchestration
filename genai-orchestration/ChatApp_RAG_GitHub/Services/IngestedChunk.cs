@@ -1,7 +1,7 @@
 ﻿using System.Text.Json.Serialization;
 using Microsoft.Extensions.VectorData;
 
-namespace ChatApp_RAG.Services;
+namespace ChatApp_RAG_GitHub.Services;
 
 public class IngestedChunk
 {

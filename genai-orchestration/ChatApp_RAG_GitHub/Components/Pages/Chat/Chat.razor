@@ -56,7 +56,8 @@
         messages.Add(new(ChatRole.System, SystemPrompt));
         chatOptions.Tools = [
             AIFunctionFactory.Create(LoadDocumentsAsync),
-            AIFunctionFactory.Create(SearchAsync)
+            AIFunctionFactory.Create(SearchAsync),
+            AIFunctionFactory.Create(GetTemperature)
         ];
     }
 
@@ -127,6 +128,16 @@
         var results = await Search.SearchAsync(searchPhrase, filenameFilter, maxResults: 5);
         return results.Select(result =>
             $"<result filename=\"{result.DocumentId}\">{result.Text}</result>");
+    }
+
+    [Description("Get Current Temperature")]
+    private async Task<float?> GetTemperature(
+        [Description("The temperature of location.")] string location)
+    {
+        // This is an example of how you might implement a custom tool that isn't based on the AIFunctionFactory. You can use any code here, and it can return any data you want - it doesn't have to be a string or even text-based.
+        await Task.Delay(500);
+        return new Random().Next(-10, 35);
+
     }
 
     public void Dispose()

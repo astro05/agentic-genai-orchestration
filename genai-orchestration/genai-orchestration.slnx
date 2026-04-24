@@ -1,5 +1,5 @@
 <Solution>
-  <Project Path="ChatApp_RAG/ChatApp_RAG.csproj" />
+  <Project Path="ChatApp_RAG_GitHub/ChatApp_RAG_GitHub.csproj" />
   <Project Path="TextGeneration/TextGeneration_GitHub.csproj" />
   <Project Path="TextGeneration_Ollama/TextGeneration_Ollama.csproj" />
   <Project Path="VectorSearch/VectorSearch.csproj" />

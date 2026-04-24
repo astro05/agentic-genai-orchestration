@@ -1,7 +1,7 @@
-﻿using ChatApp_RAG.Services.Ingestion;
+﻿using ChatApp_RAG_GitHub.Services.Ingestion;
 using Microsoft.Extensions.VectorData;
 
-namespace ChatApp_RAG.Services;
+namespace ChatApp_RAG_GitHub.Services;
 
 public class SemanticSearch(
     VectorStoreCollection<string, IngestedChunk> vectorCollection,

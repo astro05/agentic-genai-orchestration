@@ -4,7 +4,7 @@ using Microsoft.Extensions.DataIngestion.Chunkers;
 using Microsoft.Extensions.VectorData;
 using Microsoft.ML.Tokenizers;
 
-namespace ChatApp_RAG.Services.Ingestion;
+namespace ChatApp_RAG_GitHub.Services.Ingestion;
 
 public class DataIngestor(
     ILogger<DataIngestor> logger,
