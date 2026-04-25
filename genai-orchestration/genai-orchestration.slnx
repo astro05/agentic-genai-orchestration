@@ -7,6 +7,7 @@
   <Project Path="ChatApp_RAG_GitHub/ChatApp_RAG_GitHub.csproj" />
   <Project Path="ChatApp_RAG_Ollama/ChatApp_RAG_Ollama.csproj" />
   <Project Path="ImageAnalysis_GitHub/ImageAnalysis_GitHub.csproj" Id="a88d1116-dcf5-4c1c-8c1e-67402dd1080e" />
+  <Project Path="ImageAnalysis_Ollama/ImageAnalysis_Ollama.csproj" Id="93a22549-42f9-4985-b9a2-902a3519a132" />
   <Project Path="TextGeneration/TextGeneration_GitHub.csproj" />
   <Project Path="TextGeneration_Ollama/TextGeneration_Ollama.csproj" />
   <Project Path="VectorSearch/VectorSearch.csproj" />
