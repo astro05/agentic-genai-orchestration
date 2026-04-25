@@ -23,5 +23,8 @@ IChatClient client =
 // analyze the imagese
 await ImageAnalysis.AnalyzeImage(client);
 
+// analyze the traffic cam images
+await TrafficAnalysis.AnalyzeTrafficAsync(client);
+
 
 
