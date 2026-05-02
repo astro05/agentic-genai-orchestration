@@ -1,52 +1,43 @@
-﻿using MongoDB.Driver;
-using TicketSystem.API.DTOs;
+﻿using TicketSystem.API.DTOs;
 using TicketSystem.API.Models;
-using TicketSystem.API.Settings;
+using TicketSystem.API.Repositories;
 
 namespace TicketSystem.API.Services
 {
     public class AdminService
     {
-        private readonly IMongoCollection<User> _users;
+        private readonly IUserRepository _userRepository;
 
-        public AdminService(MongoDbSettings settings)
+        public AdminService(IUserRepository userRepository)
         {
-            var client = new MongoClient(settings.ConnectionString);
-            var database = client.GetDatabase(settings.DatabaseName);
-            _users = database.GetCollection<User>(settings.UsersCollection);
+            _userRepository = userRepository;
         }
 
         public async Task<List<UserDto>> GetAllUsersAsync()
         {
-            var users = await _users.Find(_ => true).SortByDescending(u => u.CreatedAt).ToListAsync();
+            var users = await _userRepository.GetAllAsync();
             return users.Select(MapToDto).ToList();
         }
 
         public async Task<List<UserDto>> GetAgentsAsync()
         {
-            var agents = await _users.Find(u => u.Role == UserRole.Agent && u.IsActive).ToListAsync();
+            var agents = await _userRepository.GetActiveAgentsAsync();
             return agents.Select(MapToDto).ToList();
         }
 
         public async Task<bool> UpdateRoleAsync(string userId, UserRole newRole)
         {
-            var update = Builders<User>.Update.Set(u => u.Role, newRole);
-            var result = await _users.UpdateOneAsync(u => u.Id == userId, update);
-            return result.ModifiedCount > 0;
+            return await _userRepository.UpdateRoleAsync(userId, newRole);
         }
 
         public async Task<bool> DeleteUserAsync(string userId)
         {
-            var update = Builders<User>.Update.Set(u => u.IsActive, false);
-            var result = await _users.UpdateOneAsync(u => u.Id == userId, update);
-            return result.MatchedCount > 0;
+            return await _userRepository.SetActiveAsync(userId, false);
         }
 
         public async Task<bool> ActivateUserAsync(string userId)
         {
-            var update = Builders<User>.Update.Set(u => u.IsActive, true);
-            var result = await _users.UpdateOneAsync(u => u.Id == userId, update);
-            return result.MatchedCount > 0;
+            return await _userRepository.SetActiveAsync(userId, true);
         }
 
         /// <summary>
@@ -57,13 +48,13 @@ namespace TicketSystem.API.Services
             if (actingAdminId != null && userId == actingAdminId)
                 return (false, "cannot_delete_self");
 
-            var result = await _users.DeleteOneAsync(u => u.Id == userId);
-            return result.DeletedCount > 0 ? (true, null) : (false, "not_found");
+            var deleted = await _userRepository.DeletePermanentAsync(userId);
+            return deleted ? (true, null) : (false, "not_found");
         }
 
         public async Task<bool> CreateUserAsync(RegisterRequest req)
         {
-            var existing = await _users.Find(u => u.Email == req.Email).FirstOrDefaultAsync();
+            var existing = await _userRepository.GetByEmailAsync(req.Email);
             if (existing != null) return false;
 
             var user = new User
@@ -73,7 +64,7 @@ namespace TicketSystem.API.Services
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.Password),
                 Role = req.Role
             };
-            await _users.InsertOneAsync(user);
+            await _userRepository.InsertAsync(user);
             return true;
         }
 

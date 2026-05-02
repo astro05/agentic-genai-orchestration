@@ -1,6 +1,5 @@
-using MongoDB.Driver;
 using TicketSystem.API.Models;
-using TicketSystem.API.Settings;
+using TicketSystem.API.Repositories;
 
 namespace TicketSystem.API.Services;
 
@@ -11,23 +10,19 @@ namespace TicketSystem.API.Services;
 /// </summary>
 public class SmartRoutingService
 {
-    private readonly IMongoCollection<User> _users;
-    private readonly IMongoCollection<Ticket> _tickets;
+    private readonly IUserRepository _userRepository;
+    private readonly ITicketRepository _ticketRepository;
 
-    public SmartRoutingService(MongoDbSettings settings)
+    public SmartRoutingService(IUserRepository userRepository, ITicketRepository ticketRepository)
     {
-        var client = new MongoClient(settings.ConnectionString);
-        var database = client.GetDatabase(settings.DatabaseName);
-        _users = database.GetCollection<User>(settings.UsersCollection);
-        _tickets = database.GetCollection<Ticket>(settings.TicketsCollection);
+        _userRepository = userRepository;
+        _ticketRepository = ticketRepository;
     }
 
 
     public async Task<string?> FindBestAgentIdForCategoryAsync(TicketCategory category)
     {
-        var agents = await _users
-            .Find(u => u.Role == UserRole.Agent && u.IsActive)
-            .ToListAsync();
+        var agents = await _userRepository.GetAgentsForRoutingAsync();
 
         if (agents.Count == 0)
             return null;
@@ -46,9 +41,7 @@ public class SmartRoutingService
         foreach (var agent in pool)
         {
             var id = agent.Id!;
-            var openCount = await _tickets.CountDocumentsAsync(t =>
-                t.AssignedToId == id &&
-                (t.Status == TicketStatus.Open || t.Status == TicketStatus.InProgress));
+            var openCount = await _ticketRepository.CountOpenOrInProgressByAgentIdAsync(id);
             load[id] = (int)openCount;
         }
 

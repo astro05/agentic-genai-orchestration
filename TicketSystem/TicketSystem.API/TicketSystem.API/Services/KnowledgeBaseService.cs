@@ -1,18 +1,15 @@
-using MongoDB.Driver;
 using TicketSystem.API.Models;
-using TicketSystem.API.Settings;
+using TicketSystem.API.Repositories;
 
 namespace TicketSystem.API.Services;
 
 public class KnowledgeBaseService
 {
-    private readonly IMongoCollection<KnowledgeArticle> _articles;
+    private readonly IKnowledgeArticleRepository _articleRepository;
 
-    public KnowledgeBaseService(MongoDbSettings settings)
+    public KnowledgeBaseService(IKnowledgeArticleRepository articleRepository)
     {
-        var client = new MongoClient(settings.ConnectionString);
-        var database = client.GetDatabase(settings.DatabaseName);
-        _articles = database.GetCollection<KnowledgeArticle>(settings.KnowledgeBaseCollection);
+        _articleRepository = articleRepository;
     }
 
     /// <summary>
@@ -24,9 +21,7 @@ public class KnowledgeBaseService
         string description,
         int maxArticles = 5)
     {
-        var all = await _articles
-            .Find(_ => true)
-            .ToListAsync();
+        var all = await _articleRepository.GetAllAsync();
 
         var terms = Tokenize($"{title} {description}");
         var scored = all

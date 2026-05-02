@@ -1,22 +1,22 @@
-﻿using MongoDB.Driver;
-using TicketSystem.API.Models;
-using TicketSystem.API.Settings;
+﻿using TicketSystem.API.Models;
+using TicketSystem.API.Repositories;
 
 namespace TicketSystem.API.Data
 {
     public class DataSeeder
     {
-        private readonly IMongoCollection<User> _users;
-        private readonly IMongoCollection<Ticket> _tickets;
-        private readonly IMongoCollection<KnowledgeArticle> _knowledge;
+        private readonly IUserRepository _userRepository;
+        private readonly ITicketRepository _ticketRepository;
+        private readonly IKnowledgeArticleRepository _knowledgeRepository;
 
-        public DataSeeder(MongoDbSettings settings)
+        public DataSeeder(
+            IUserRepository userRepository,
+            ITicketRepository ticketRepository,
+            IKnowledgeArticleRepository knowledgeRepository)
         {
-            var client = new MongoClient(settings.ConnectionString);
-            var database = client.GetDatabase(settings.DatabaseName);
-            _users = database.GetCollection<User>(settings.UsersCollection);
-            _tickets = database.GetCollection<Ticket>(settings.TicketsCollection);
-            _knowledge = database.GetCollection<KnowledgeArticle>(settings.KnowledgeBaseCollection);
+            _userRepository = userRepository;
+            _ticketRepository = ticketRepository;
+            _knowledgeRepository = knowledgeRepository;
         }
 
         public async Task SeedAsync()
@@ -28,7 +28,7 @@ namespace TicketSystem.API.Data
 
         private async Task SeedUsersIfEmptyAsync()
         {
-            if (await _users.CountDocumentsAsync(_ => true) > 0)
+            if ((await _userRepository.GetAllAsync()).Count > 0)
                 return;
 
             var admin = new User
@@ -94,17 +94,19 @@ namespace TicketSystem.API.Data
                 Role = UserRole.Customer
             };
 
-            await _users.InsertManyAsync(new[]
-            {
-                admin, agentAuth, agentBilling, agentTech, agentGeneral, customer
-            });
+            await _userRepository.InsertAsync(admin);
+            await _userRepository.InsertAsync(agentAuth);
+            await _userRepository.InsertAsync(agentBilling);
+            await _userRepository.InsertAsync(agentTech);
+            await _userRepository.InsertAsync(agentGeneral);
+            await _userRepository.InsertAsync(customer);
 
             Console.WriteLine("Users seeded (admin, 4 agents with routing profiles, customer).");
         }
 
         private async Task SeedKnowledgeBaseIfEmptyAsync()
         {
-            if (await _knowledge.CountDocumentsAsync(_ => true) > 0)
+            if (await _knowledgeRepository.CountAllAsync() > 0)
                 return;
 
             var articles = new List<KnowledgeArticle>
@@ -201,18 +203,18 @@ namespace TicketSystem.API.Data
                 }
             };
 
-            await _knowledge.InsertManyAsync(articles);
+            await _knowledgeRepository.InsertManyAsync(articles);
             Console.WriteLine($"Knowledge base seeded ({articles.Count} articles).");
         }
 
         private async Task SeedSampleTicketsIfEmptyAsync()
         {
-            if (await _tickets.CountDocumentsAsync(_ => true) > 0)
+            if (await _ticketRepository.CountAllAsync() > 0)
                 return;
 
-            var customer = await _users.Find(u => u.Email == "customer@ticketsys.com").FirstOrDefaultAsync();
-            var agentAuth = await _users.Find(u => u.Email == "agent.auth@ticketsys.com").FirstOrDefaultAsync();
-            var agentBilling = await _users.Find(u => u.Email == "agent.billing@ticketsys.com").FirstOrDefaultAsync();
+            var customer = await _userRepository.GetByEmailAsync("customer@ticketsys.com");
+            var agentAuth = await _userRepository.GetByEmailAsync("agent.auth@ticketsys.com");
+            var agentBilling = await _userRepository.GetByEmailAsync("agent.billing@ticketsys.com");
 
             if (customer == null || agentAuth == null || agentBilling == null)
             {
@@ -259,7 +261,7 @@ namespace TicketSystem.API.Data
                 }
             };
 
-            await _tickets.InsertManyAsync(tickets);
+            await _ticketRepository.InsertManyAsync(tickets);
             Console.WriteLine($"Sample tickets seeded ({tickets.Length}).");
             PrintLoginHints();
         }

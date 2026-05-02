@@ -2,29 +2,26 @@
 using System.Security.Claims;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
-using MongoDB.Driver;
 using TicketSystem.API.DTOs;
 using TicketSystem.API.Models;
-using TicketSystem.API.Settings;
+using TicketSystem.API.Repositories;
 
 namespace TicketSystem.API.Services
 {
     public class AuthService
     {
-        private readonly IMongoCollection<User> _users;
+        private readonly IUserRepository _userRepository;
         private readonly IConfiguration _config;
 
-        public AuthService(MongoDbSettings settings, IConfiguration config)
+        public AuthService(IUserRepository userRepository, IConfiguration config)
         {
-            var client = new MongoClient(settings.ConnectionString);
-            var database = client.GetDatabase(settings.DatabaseName);
-            _users = database.GetCollection<User>(settings.UsersCollection);
+            _userRepository = userRepository;
             _config = config;
         }
 
         public async Task<AuthResponse?> RegisterAsync(RegisterRequest req)
         {
-            var existing = await _users.Find(u => u.Email == req.Email).FirstOrDefaultAsync();
+            var existing = await _userRepository.GetByEmailAsync(req.Email);
             if (existing != null) return null;
 
             var user = new User
@@ -35,14 +32,14 @@ namespace TicketSystem.API.Services
                 Role = req.Role == UserRole.Admin ? UserRole.Customer : req.Role  // public cannot register as admin
             };
 
-            await _users.InsertOneAsync(user);
+            await _userRepository.InsertAsync(user);
             return BuildAuthResponse(user);
         }
 
         public async Task<(AuthResponse? response, string? error)> LoginAsync(LoginRequest req)
         {
             // First check if user exists at all (regardless of active status)
-            var user = await _users.Find(u => u.Email == req.Email).FirstOrDefaultAsync();
+            var user = await _userRepository.GetByEmailAsync(req.Email);
 
             if (user == null || !BCrypt.Net.BCrypt.Verify(req.Password, user.PasswordHash))
                 return (null, "invalid_credentials");

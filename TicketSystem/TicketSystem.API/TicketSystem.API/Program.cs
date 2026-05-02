@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using TicketSystem.API.Data;
 using TicketSystem.API.Middleware;
+using TicketSystem.API.Repositories;
 using TicketSystem.API.Services;
 using TicketSystem.API.Settings;
 
@@ -12,6 +13,10 @@ var builder = WebApplication.CreateBuilder(args);
 var mongoSettings = builder.Configuration.GetSection("MongoDbSettings").Get<MongoDbSettings>()
     ?? throw new Exception("MongoDbSettings not configured");
 builder.Services.AddSingleton(mongoSettings);
+builder.Services.AddSingleton<MongoDbContext>();
+builder.Services.AddSingleton<IUserRepository, UserRepository>();
+builder.Services.AddSingleton<ITicketRepository, TicketRepository>();
+builder.Services.AddSingleton<IKnowledgeArticleRepository, KnowledgeArticleRepository>();
 
 
 builder.Services.AddSingleton<AuthService>();

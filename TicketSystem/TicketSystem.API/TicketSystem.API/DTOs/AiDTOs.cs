@@ -11,7 +11,6 @@ public class AIClassifyResponse
     public string Priority { get; set; } = string.Empty;
 }
 
-// ─── Reply assist ───────────────────────────────────────────
 public class ReplyAssistSourceDto
 {
     public string ArticleId { get; set; } = string.Empty;

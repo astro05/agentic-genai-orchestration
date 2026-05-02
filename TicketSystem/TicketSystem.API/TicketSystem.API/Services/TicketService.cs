@@ -1,23 +1,23 @@
 ﻿using MongoDB.Bson;
-using MongoDB.Driver;
 using TicketSystem.API.DTOs;
 using TicketSystem.API.Models;
-using TicketSystem.API.Settings;
+using TicketSystem.API.Repositories;
 
 namespace TicketSystem.API.Services
 {
     public class TicketService
     {
-        private readonly IMongoCollection<Ticket> _tickets;
-        private readonly IMongoCollection<User> _users;
+        private readonly ITicketRepository _ticketRepository;
+        private readonly IUserRepository _userRepository;
         private readonly SmartRoutingService _smartRouting;
 
-        public TicketService(MongoDbSettings settings, SmartRoutingService smartRouting)
+        public TicketService(
+            ITicketRepository ticketRepository,
+            IUserRepository userRepository,
+            SmartRoutingService smartRouting)
         {
-            var client = new MongoClient(settings.ConnectionString);
-            var database = client.GetDatabase(settings.DatabaseName);
-            _tickets = database.GetCollection<Ticket>(settings.TicketsCollection);
-            _users = database.GetCollection<User>(settings.UsersCollection);
+            _ticketRepository = ticketRepository;
+            _userRepository = userRepository;
             _smartRouting = smartRouting;
         }
 
@@ -31,18 +31,14 @@ namespace TicketSystem.API.Services
                 CreatedById = customerId,
                 CreatedByName = customerName
             };
-            await _tickets.InsertOneAsync(ticket);
+            await _ticketRepository.InsertAsync(ticket);
             return MapToDto(ticket);
         }
 
         
         public async Task UpdateAIClassification(string ticketId, TicketCategory category, TicketPriority priority)
         {
-            var update = Builders<Ticket>.Update
-                .Set(t => t.Category, category)
-                .Set(t => t.Priority, priority)
-                .Set(t => t.UpdatedAt, DateTime.UtcNow);
-            await _tickets.UpdateOneAsync(t => t.Id == ticketId, update);
+            await _ticketRepository.UpdateClassificationAsync(ticketId, category, priority);
         }
 
         /// <summary>
@@ -50,7 +46,7 @@ namespace TicketSystem.API.Services
         /// </summary>
         public async Task<bool> TrySmartAssignAsync(string ticketId, TicketCategory category)
         {
-            var ticket = await _tickets.Find(t => t.Id == ticketId).FirstOrDefaultAsync();
+            var ticket = await _ticketRepository.GetByIdAsync(ticketId);
             if (ticket == null || !string.IsNullOrEmpty(ticket.AssignedToId))
                 return false;
 
@@ -58,26 +54,15 @@ namespace TicketSystem.API.Services
             if (string.IsNullOrEmpty(agentId))
                 return false;
 
-            var agent = await _users.Find(u => u.Id == agentId && u.Role == UserRole.Agent && u.IsActive)
-                .FirstOrDefaultAsync();
-            if (agent == null)
+            var agent = await _userRepository.GetByIdAsync(agentId);
+            if (agent is null || agent.Role != UserRole.Agent || !agent.IsActive)
                 return false;
-
-            var update = Builders<Ticket>.Update
-                .Set(t => t.AssignedToId, agentId)
-                .Set(t => t.AssignedToName, agent.FullName)
-                .Set(t => t.Status, TicketStatus.InProgress)
-                .Set(t => t.UpdatedAt, DateTime.UtcNow);
-
-            var result = await _tickets.UpdateOneAsync(
-                t => t.Id == ticketId && string.IsNullOrEmpty(t.AssignedToId),
-                update);
-            return result.ModifiedCount > 0;
+            return await _ticketRepository.TryAssignAsync(ticketId, agentId, agent.FullName, onlyIfUnassigned: true);
         }
 
         public async Task<TicketDto?> GetByIdAsync(string ticketId)
         {
-            var ticket = await _tickets.Find(t => t.Id == ticketId).FirstOrDefaultAsync();
+            var ticket = await _ticketRepository.GetByIdAsync(ticketId);
             return ticket == null ? null : MapToDto(ticket);
         }
 
@@ -86,7 +71,7 @@ namespace TicketSystem.API.Services
         /// </summary>
         public async Task<(bool Ok, string Error)> ValidateReplyAssistAsync(string ticketId, string agentId)
         {
-            var t = await _tickets.Find(x => x.Id == ticketId).FirstOrDefaultAsync();
+            var t = await _ticketRepository.GetByIdAsync(ticketId);
             if (t == null) return (false, "not_found");
             if (string.IsNullOrEmpty(t.AssignedToId)) return (false, "unassigned");
             if (t.AssignedToId != agentId) return (false, "forbidden");
@@ -96,47 +81,34 @@ namespace TicketSystem.API.Services
         
         public async Task<List<TicketDto>> GetByCustomerAsync(string customerId)
         {
-            var tickets = await _tickets.Find(t => t.CreatedById == customerId)
-                .SortByDescending(t => t.CreatedAt).ToListAsync();
+            var tickets = await _ticketRepository.GetByCustomerIdAsync(customerId);
             return tickets.Select(MapToDto).ToList();
         }
 
        
         public async Task<List<TicketDto>> GetByAgentAsync(string agentId)
         {
-            var tickets = await _tickets.Find(t => t.AssignedToId == agentId)
-                .SortByDescending(t => t.CreatedAt).ToListAsync();
+            var tickets = await _ticketRepository.GetByAgentIdAsync(agentId);
             return tickets.Select(MapToDto).ToList();
         }
 
       
         public async Task<bool> UpdateStatusAsync(string ticketId, string agentId, TicketStatus status)
         {
-            var ticket = await _tickets.Find(t => t.Id == ticketId && t.AssignedToId == agentId).FirstOrDefaultAsync();
-            if (ticket == null) return false;
-
-            var updateDef = Builders<Ticket>.Update
-                .Set(t => t.Status, status)
-                .Set(t => t.UpdatedAt, DateTime.UtcNow);
-
-            if (status == TicketStatus.Resolved)
-                updateDef = updateDef.Set(t => t.ResolvedAt, DateTime.UtcNow);
-
-            await _tickets.UpdateOneAsync(t => t.Id == ticketId, updateDef);
-            return true;
+            var ticket = await _ticketRepository.GetByIdAsync(ticketId);
+            if (ticket == null || ticket.AssignedToId != agentId) return false;
+            return await _ticketRepository.UpdateStatusAsync(
+                ticketId,
+                status,
+                setResolvedAt: status == TicketStatus.Resolved);
         }
 
        
         public async Task<bool> UpdateAgentNotesAsync(string ticketId, string agentId, string notes)
         {
-            var ticket = await _tickets.Find(t => t.Id == ticketId && t.AssignedToId == agentId).FirstOrDefaultAsync();
-            if (ticket == null) return false;
-
-            var update = Builders<Ticket>.Update
-                .Set(t => t.AgentNotes, notes)
-                .Set(t => t.UpdatedAt, DateTime.UtcNow);
-            await _tickets.UpdateOneAsync(t => t.Id == ticketId, update);
-            return true;
+            var ticket = await _ticketRepository.GetByIdAsync(ticketId);
+            if (ticket == null || ticket.AssignedToId != agentId) return false;
+            return await _ticketRepository.UpdateNotesAsync(ticketId, notes);
         }
 
         
@@ -153,7 +125,7 @@ namespace TicketSystem.API.Services
             if (body.Length > 8000)
                 return (null, "body_too_long");
 
-            var ticket = await _tickets.Find(t => t.Id == ticketId).FirstOrDefaultAsync();
+            var ticket = await _ticketRepository.GetByIdAsync(ticketId);
             if (ticket == null)
                 return (null, "not_found");
 
@@ -181,11 +153,7 @@ namespace TicketSystem.API.Services
                     : req.ReplyToMessageId
             };
 
-            var update = Builders<Ticket>.Update
-                .Push(t => t.Messages, msg)
-                .Set(t => t.UpdatedAt, DateTime.UtcNow);
-
-            await _tickets.UpdateOneAsync(t => t.Id == ticketId, update);
+            await _ticketRepository.AddMessageAsync(ticketId, msg);
             return (MapMessageToDto(msg), null);
         }
 
@@ -203,25 +171,16 @@ namespace TicketSystem.API.Services
         
         public async Task<List<TicketDto>> GetAllAsync()
         {
-            var tickets = await _tickets.Find(_ => true)
-                .SortByDescending(t => t.CreatedAt).ToListAsync();
+            var tickets = await _ticketRepository.GetAllAsync();
             return tickets.Select(MapToDto).ToList();
         }
 
      
         public async Task<bool> AssignAsync(string ticketId, string agentId)
         {
-            var agent = await _users.Find(u => u.Id == agentId && u.Role == UserRole.Agent).FirstOrDefaultAsync();
-            if (agent == null) return false;
-
-            var update = Builders<Ticket>.Update
-                .Set(t => t.AssignedToId, agentId)
-                .Set(t => t.AssignedToName, agent.FullName)
-                .Set(t => t.Status, TicketStatus.InProgress)
-                .Set(t => t.UpdatedAt, DateTime.UtcNow);
-
-            var result = await _tickets.UpdateOneAsync(t => t.Id == ticketId, update);
-            return result.MatchedCount > 0;
+            var agent = await _userRepository.GetByIdAsync(agentId);
+            if (agent is null || agent.Role != UserRole.Agent || !agent.IsActive) return false;
+            return await _ticketRepository.TryAssignAsync(ticketId, agentId, agent.FullName, onlyIfUnassigned: false);
         }
 
         private static TicketDto MapToDto(Ticket t)
